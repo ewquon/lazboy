@@ -5,10 +5,16 @@
 # Written by Eliot Quon (eliot.quon@nrel.gov), 2018-07-09
 #
 from __future__ import print_function
+import os
 import numpy as np
 import tkinter as tk
-from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+try:
+    # Python 2.7
+    import tkFileDialog as filedialog
+except ImportError:
+    # Python 3
+    import tk.filedialog as filedialog
 
 import template as tpl
 
@@ -494,15 +500,34 @@ class MainWindow(tk.Frame):
                     wvar = widget.get()
                 else:
                     # we have a control variable instead of widget
-                    if DEBUG: print('Updated variable "{}" ({}) from {}'.format(name,str(dtype),widget.winfo_class()))
+                    if DEBUG:
+                        print('Updated variable "{}" ({}) from {}'.format(
+                            name, str(dtype), widget.winfo_class()) )
                     wvar = getattr(self, name+'Var').get()
-                self.params[name] = dtype(wvar)
+
+                if dtype is list:
+                    dtype = type(val[0])
+                    vals = wvar.strip('[]').split(',')
+                    vals = [ dtype(val) for val in vals ]
+                    self.params[name] = vals
+                    if DEBUG: print('  reconstructed list: {}'.format(vals))
+                else:
+                    self.params[name] = dtype(wvar)
 
 
-    def save_template(self):
+    def save_template(self,fpath=None):
         self.get_all_params()
-        print('TODO: save new template')
+        if fpath is None:
+            fpath = filedialog.asksaveasfilename(
+                    initialdir=os.path.join(tpl.mypath, 'simulation_templates'),
+                    title='Save precursor configuration',
+                    filetypes=(('yaml files','*.yaml'),('all files','*,*')))
 
+        print('TODO: save new template',fpath)
+        if not fpath == '':
+            if DEBUG: print(tpl.yaml_template.format(**self.params))
+            with open(fpath,'w') as f:
+                f.write(tpl.yaml_template.format(**self.params))
 
     def generate(self):
         self.get_all_params()
