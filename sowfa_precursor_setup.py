@@ -5,6 +5,7 @@
 # Written by Eliot Quon (eliot.quon@nrel.gov), 2018-07-09
 #
 from __future__ import print_function
+import numpy as np
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
@@ -52,6 +53,7 @@ class MainWindow(tk.Frame):
         """atmosphere controls"""
         self.velocityInitTypeVar = tk.StringVar(self.master, value='geostrophic')
         self.temperatureInitTypeVar = tk.StringVar(self.master, value='simple')
+        self.sourceTypeVar = tk.StringVar(self.master, value='single height')
 #        self.U0Mag = 8.0  # Initial condition for wind speed (m/s).
 #        self.dir = 270.0  # Initial condition for wind direction (deg).
 #        self.windHeight = 80.0  # Height at which to drive mean wind to U0Mag/dir (m).
@@ -326,15 +328,19 @@ class MainWindow(tk.Frame):
                                                    args=['geostrophic','log','table'],
                                                    variable=self.velocityInitTypeVar,
                                                    command=self.update_velocity_init)
+        vcmd = self.register(self.update_profiles)
         self.U0Mag = self.EntryRow(section,
                                    'U0Mag',
-                                   'Initial condition for wind speed (m/s).')
+                                   'Initial condition for wind speed (m/s).',
+                                   vcmd=vcmd)
         self.dir = self.EntryRow(section,
                                  'dir',
-                                 'Initial condition for wind direction (deg).')
+                                 'Initial condition for wind direction (deg).',
+                                 vcmd=vcmd)
         self.windHeight = self.EntryRow(section,
                                         'windHeight',
-                                        'Height at which to drive mean wind to U0Mag/dir (m).')
+                                        'Height at which to drive mean wind to U0Mag/dir (m).',
+                                        vcmd=vcmd)
         #self.p_rgh0 = 0.0  # Initial pressure (minus the hydrostatic variation and normalized by density) (m^2/s^2).
         #self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
         #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
@@ -350,7 +356,8 @@ class MainWindow(tk.Frame):
                                         'Potential temperature gradient above the strong inversion (K/m).')
         self.zInversion = self.EntryRow(section,
                                         'zInversion',
-                                        'Height of the middle of the initial strong capping inversion (m).')
+                                        'Height of the middle of the initial strong capping inversion (m).',
+                                        vcmd=vcmd)
         self.inversionWidth = self.EntryRow(section,
                                             'inversionWidth',
                                             'Vertical width of the intial strong capping inversion (m).')
@@ -369,10 +376,22 @@ class MainWindow(tk.Frame):
                                            command=self.plot_background_conditions)
         self.plot_bkgnd_button.grid(row=self.lastrow, column=3, sticky=tk.E)
 
+        self.sourceType = self.OptionMenuRow(section, 'sourceType',
+                                             'Computed source type',
+                                             args=['single height','column'],
+                                             variable=self.sourceTypeVar,
+                                             command=self.update_source_type)
+        vcmd = self.register(self.update_profiles)
+        self.alpha = self.EntryRow(section, 'alpha', 'Shear exponent',
+                                   vcmd=vcmd)
+        self.veer = self.EntryRow(section, 'veer', 'Veer over windHeight (deg)',
+                                  vcmd=vcmd)
+
         """Optional profile table for finer control over the background
         and initial conditions. Note, I'm assuming that if a profile is
         specified for the background conditions, the same profile should
-        be used to initialize the solution with setFieldsABL.
+        be used to initialize the solution with setFieldsABL. Also, the
+        background conditions are assumed to be stationary.
         """
         namestr = tk.Label(section, text='profileTable')
         namestr.grid(row=self.nextrow(), column=0)
@@ -431,6 +450,8 @@ class MainWindow(tk.Frame):
         
         """update active text widgets"""
         self.calc_grid_res()
+        #self.update_profiles()
+        self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
         self.update_decomp(self.decompTypeVar.get())
         self.update_coriolis()
         self.update_velocity_init(self.velocityInitTypeVar.get())
@@ -494,9 +515,14 @@ class MainWindow(tk.Frame):
         except ValueError:
             pass
         else:
-            self.dxText['text'] = 'dx = {} m'.format((x1-x0)/nx)
-            self.dyText['text'] = 'dy = {} m'.format((y1-y0)/ny)
-            self.dzText['text'] = 'dz = {} m'.format((z1-z0)/nz)
+            dx = (x1-x0) / nx
+            dy = (y1-y0) / ny
+            dz = (z1-z0) / nz
+            self.zsurf = z0
+            self.dz = dz
+            self.dxText['text'] = 'dx = {} m'.format(dx)
+            self.dyText['text'] = 'dy = {} m'.format(dy)
+            self.dzText['text'] = 'dz = {} m'.format(dz)
             self.NcellsText['text'] = 'Ncells = {:g}'.format(nx*ny*nz)
 
             self.coresNeeded = int(self.nCores.get())/int(self.PPN.get())
@@ -504,6 +530,32 @@ class MainWindow(tk.Frame):
 
             avgCellsPerCore = int(nx*ny*nz/float(self.nCores.get()))
             self.cellsPerCoreText['text'] = 'average {} cells/core'.format(avgCellsPerCore)
+
+
+    def update_profiles(self,name=None):
+        self.profileTable.delete('1.0', tk.END)
+        self.profileTable.insert(tk.END, '//   z       U       V       T\n')
+        nz = int(self.nz.get())
+        self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
+        zref = float(self.windHeight.get())
+        Uref = float(self.U0Mag.get())
+        wdir = 270. - float(self.dir.get())
+        if wdir < 0: wdir += 360.
+        wdir *= np.pi/180.
+        alpha = float(self.alpha.get())
+        veer = float(self.veer.get()) * np.pi/180.
+        zinv = float(self.zInversion.get())
+        self.WS = Uref * (self.z / zref)**alpha
+        self.WD = wdir + veer/zref * (self.z - zref)
+        freeatm = self.z >= zinv
+        WDtop = self.WD[freeatm][0]
+        self.WD[freeatm] = WDtop
+        self.U = self.WS * np.cos(self.WD)
+        self.V = self.WS * np.sin(self.WD)
+        for zi,Ui,Vi in zip(self.z,self.U,self.V):
+            rowdata = '{}  {}  {}\n'.format(zi,Ui,Vi)
+            self.profileTable.insert(tk.END, rowdata)
+        return True
 
     def update_decomp(self,decompType):
         if decompType=='simple':
@@ -513,6 +565,7 @@ class MainWindow(tk.Frame):
         else:
             raise ValueError('Unexpected decompType: '+decompType)
 
+
     def update_coriolis(self):
         coriolis = self.coriolisVar.get()
         if coriolis==1:
@@ -521,6 +574,17 @@ class MainWindow(tk.Frame):
         else:
             self.EarthPeriod.config(state='disabled')
             self.latitude.config(state='disabled')
+
+
+    def update_source_type(self,sourceType):
+        if sourceType=='single height':
+            self.profileTable.config(state='disabled',fg='light grey')
+        elif sourceType=='column':
+            self.profileTable.config(state='normal',fg='black')
+        else:
+            raise ValueError('Unexpected source type: '+sourceType)
+        self.update_profiles()
+
 
     def update_velocity_init(self,initType):
         print('velocityInitType = '+initType)
