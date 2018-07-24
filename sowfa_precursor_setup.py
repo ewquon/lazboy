@@ -69,13 +69,13 @@ class MainWindow(tk.Frame):
  
         """surface controls"""
         self.surfaceBCTypeVar = tk.StringVar(self.master, value='fixed flux')
-#        self.qwall = [0.0,0.0,0.0]  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
+        #self.qwall = [0.0,0.0,0.0]  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
 #        self.Rwall = [0.0,0.0,0.0,0.0,0.0,0.0]  # Initial wall shear stress (m^2/s^2).
 #        self.kappa = 0.4  # von Karman constant.
-#        self.z0 = 0.15  # Surface roughness (m).
-#        self.heatingRate = 0.0  # Surface temperature change rate (when not directly setting temperature flux) (K/s).
-#
-#        """advanced controls"""
+        #self.z0 = 0.15  # Surface roughness (m).
+        #self.heatingRate = 0.0  # Surface temperature change rate (when not directly setting temperature flux) (K/s).
+ 
+        """advanced controls"""
 #        # surface conditions
 #        self.wallModelAverageType = 'planarAverage'  # Treat surface stress wall model locally ("local") or with planar averaging ("planarAverage").
 #        self.betaM = 16.0  # Monin-Obukhov wall shear stress model constant.
@@ -97,6 +97,7 @@ class MainWindow(tk.Frame):
 #        self.LESModel = 'oneEqEddyABL'  # SGS model selection.
 #        self.ce = 0.93  # SGS model constant.
 #        self.ck = 0.0673  # SGS model constant.
+
 
     #==========================================================================
     #
@@ -480,11 +481,31 @@ class MainWindow(tk.Frame):
         self.update_surface_bc()
 
 
+    def get_all_params(self):
+        for name, val in self.params.iteritems():
+            dtype = type(val)
+            try:
+                widget = getattr(self, name)
+            except AttributeError:
+                pass
+            else:
+                if widget.winfo_class() == 'Entry':
+                    if DEBUG: print('Updated variable "{}" ({}) from Entry'.format(name,str(dtype)))
+                    wvar = widget.get()
+                else:
+                    # we have a control variable instead of widget
+                    if DEBUG: print('Updated variable "{}" ({}) from {}'.format(name,str(dtype),widget.winfo_class()))
+                    wvar = getattr(self, name+'Var').get()
+                self.params[name] = dtype(wvar)
+
+
     def save_template(self):
+        self.get_all_params()
         print('TODO: save new template')
 
 
     def generate(self):
+        self.get_all_params()
         print('Generating case files!')
 
 
