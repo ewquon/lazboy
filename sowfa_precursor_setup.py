@@ -7,6 +7,7 @@
 from __future__ import print_function
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 
 import template as tpl
 
@@ -282,12 +283,6 @@ class MainWindow(tk.Frame):
                                                    args=['geostrophic','log','table'],
                                                    variable=self.velocityInitTypeVar,
                                                    command=self.update_velocity_init)
-        self.temperatureInitType = self.OptionMenuRow(section, 'temperatureInitType',
-                                                   'How to initialize the base temperature profile',
-                                                   args=['simple','table'],
-                                                   variable=self.temperatureInitTypeVar,
-                                                   command=self.update_temperature_init)
-
         self.U0Mag = self.EntryRow(section,
                                    'U0Mag',
                                    'Initial condition for wind speed (m/s).')
@@ -302,6 +297,11 @@ class MainWindow(tk.Frame):
         #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
         #self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
 
+        self.temperatureInitType = self.OptionMenuRow(section, 'temperatureInitType',
+                                                   'How to initialize the base temperature profile',
+                                                   args=['simple','table'],
+                                                   variable=self.temperatureInitTypeVar,
+                                                   command=self.update_temperature_init)
         self.TGradUpper = self.EntryRow(section,
                                         'TGradUpper',
                                         'Potential temperature gradient above the strong inversion (K/m).')
@@ -324,6 +324,17 @@ class MainWindow(tk.Frame):
                                            text='PLOT',
                                            command=self.plot_background_conditions)
         self.plot_bkgnd_button.grid(row=self.lastrow, column=3, sticky=tk.E)
+
+        """Optional profile table for finer control over the background
+        and initial conditions. Note, I'm assuming that if a profile is
+        specified for the background conditions, the same profile should
+        be used to initialize the solution with setFieldsABL.
+        """
+        namestr = tk.Label(section, text='profileTable')
+        namestr.grid(row=self.nextrow(), column=0)
+        text = ScrolledText(section)
+        text.grid(row=self.lastrow, column=1, columnspan=2, sticky='ew')
+        self.profileTable = text
 
 
     def init_surface_controls(self):
@@ -477,12 +488,14 @@ class MainWindow(tk.Frame):
     # Note: importing matplotlib at the beginning causes a crash
 
     def plot_initial_conditions(self):
+        # TODO: This is a stub.
         import matplotlib.pyplot as plt
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Initial Conditions')
         plt.show()
 
     def plot_background_conditions(self):
+        # TODO: This is a stub.
         import matplotlib.pyplot as plt
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Background Conditions')
