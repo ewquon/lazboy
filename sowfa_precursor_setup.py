@@ -45,65 +45,25 @@ class MainWindow(tk.Frame):
         self.lastrow = -1
 
         """decomposition controls"""
-        #self.nCores = 216  # Number of cores on which to run this case.
-        #self.decompType = 'simple'  # Decomposition algorithm.  "simple" and "scotch" are good choices.
         self.decompTypeVar = tk.StringVar(self.master, value='simple')
-        #self.decompOrder = [6,6,6]  # Order of the decomposition number of partitions in (x y z)-directions.
 
         """general conditions"""
-        #self.TRef = 300.0  # Reference potential temperature (K).
         self.coriolisVar = tk.IntVar(self.master, value=1)
-        #self.latitude = 40.0  # Latitude on the Earth of the site (deg).
-        #self.EarthPeriod = 24.0  # Earth's rotation period (hr).
 
         """atmosphere controls"""
         self.velocityInitTypeVar = tk.StringVar(self.master, value='geostrophic')
         self.temperatureInitTypeVar = tk.StringVar(self.master, value='simple')
         self.sourceTypeVar = tk.StringVar(self.master, value='single height')
-        #self.U0Mag = 8.0  # Initial condition for wind speed (m/s).
-        #self.dir = 270.0  # Initial condition for wind direction (deg).
-        #self.windHeight = 80.0  # Height at which to drive mean wind to U0Mag/dir (m).
-#        self.p_rgh0 = 0.0  # Initial pressure (minus the hydrostatic variation and normalized by density) (m^2/s^2).
-#        self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
-#        self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
-#        self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
-        #self.TGradUpper = 0.003  # Potential temperature gradient above the strong inversion (K/m).
-        #self.zInversion = 750.0  # Height of the middle of the initial strong capping inversion (m).
-        #self.inversionWidth = 100.0  # Vertical width of the intial strong capping inversion (m).
-        #self.TBottom = 300.0  # Initial potential temperature at bottom of strong capping inversion (K).
-        #self.TTop = 305.0  # Initial potential temperature at top of strong capping inversion (K).
+        #self.p_rgh0 = 0.0  # Initial pressure (minus the hydrostatic variation and normalized by density) (m^2/s^2).
+        #self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
+        #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
+        #self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
  
         """surface controls"""
         self.surfaceBCTypeVar = tk.StringVar(self.master, value='fixed flux')
-        #self.qwall = [0.0,0.0,0.0]  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
-#        self.Rwall = [0.0,0.0,0.0,0.0,0.0,0.0]  # Initial wall shear stress (m^2/s^2).
-#        self.kappa = 0.4  # von Karman constant.
-        #self.z0 = 0.15  # Surface roughness (m).
-        #self.heatingRate = 0.0  # Surface temperature change rate (when not directly setting temperature flux) (K/s).
+        #self.Rwall = [0.0,0.0,0.0,0.0,0.0,0.0]  # Initial wall shear stress (m^2/s^2).
+        #self.kappa = 0.4  # von Karman constant.
  
-        """advanced controls"""
-#        # surface conditions
-#        self.wallModelAverageType = 'planarAverage'  # Treat surface stress wall model locally ("local") or with planar averaging ("planarAverage").
-#        self.betaM = 16.0  # Monin-Obukhov wall shear stress model constant.
-#        self.gammaM = 5.0  # Monin-Obukhov wall shear stress model constant.
-#        self.betaH = 9.0  # Monin-Obukhov wall temperature flux model constant.
-#        self.gammaH = 7.8  # Monin-Obukhov wall temperature flux model constant.
-#        self.alphaH = 1.0  # Monin-Obukhov wall temperature flux model constant.
-#
-#        # planar averaging and source term statistics options.
-#        self.statisticsOn = True  # Gather planar-averaged flow statistics.
-#        self.statisticsFrequency = 5  # Frequency in time steps of statistics gathering.
-#
-#        # transport properties
-#        self.Pr = 0.7  # Molecular Prandtl number.
-#        self.Prt = 0.33333333  # Turbulent Prandtl number.
-#        self.nu = 1.0E-5  # Molecular viscosity (m^2/s).
-#
-#        # SGS model inputs
-#        self.LESModel = 'oneEqEddyABL'  # SGS model selection.
-#        self.ce = 0.93  # SGS model constant.
-#        self.ck = 0.0673  # SGS model constant.
-
 
     #==========================================================================
     #
@@ -443,99 +403,6 @@ class MainWindow(tk.Frame):
 
     #==========================================================================
     #
-    # actions
-    #
-
-    def restore_defaults(self):
-        """It's kind of a PITA, but binding tk.StringVar to the widgets
-        and trying to udpate it in the validate command breaks the
-        callback routine. So instead of being able to just call 
-            tk.StringVar.set(value),
-        we instead have to call
-            tk.Entry.delete(0, END)
-            tk.Entry.insert(0, value).
-        """
-        print('Restoring defaults for '+self.template.get())
-        params = tpl.read_template(self.template.get())
-        if DEBUG: print(params)
-        self.params = params
-
-        for name, val in params.iteritems():
-            try:
-                widget = getattr(self, name)
-            except AttributeError:
-                print('Note: widget "'+name+'" does not exist')
-            else:
-                if widget.winfo_class() == 'Entry':
-                    if DEBUG: print('Setting entry "'+name+'"')
-                    widget.delete(0, tk.END)
-                    widget.insert(0, val)
-                else:
-                    # we have a control variable instead of widget
-                    if DEBUG: print('Setting variable for "{}" ({})'.format(name,widget.winfo_class()))
-                    wvar = getattr(self, name+'Var')
-                    wvar.set(val)
-        
-        """update active text widgets"""
-        self.calc_grid_res()
-        #self.update_profiles()
-        self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
-        self.update_decomp(self.decompTypeVar.get())
-        self.update_coriolis()
-        self.update_velocity_init(self.velocityInitTypeVar.get())
-        self.update_temperature_init(self.temperatureInitTypeVar.get())
-        self.update_surface_bc()
-
-
-    def get_all_params(self):
-        for name, val in self.params.iteritems():
-            dtype = type(val)
-            try:
-                widget = getattr(self, name)
-            except AttributeError:
-                pass
-            else:
-                if widget.winfo_class() == 'Entry':
-                    if DEBUG: print('Updated variable "{}" ({}) from Entry'.format(name,str(dtype)))
-                    wvar = widget.get()
-                else:
-                    # we have a control variable instead of widget
-                    if DEBUG:
-                        print('Updated variable "{}" ({}) from {}'.format(
-                            name, str(dtype), widget.winfo_class()) )
-                    wvar = getattr(self, name+'Var').get()
-
-                if dtype is list:
-                    dtype = type(val[0])
-                    vals = wvar.strip('[]').split(',')
-                    vals = [ dtype(val) for val in vals ]
-                    self.params[name] = vals
-                    if DEBUG: print('  reconstructed list: {}'.format(vals))
-                else:
-                    self.params[name] = dtype(wvar)
-
-
-    def save_template(self,fpath=None):
-        self.get_all_params()
-        if fpath is None:
-            fpath = filedialog.asksaveasfilename(
-                    initialdir=os.path.join(tpl.mypath, 'simulation_templates'),
-                    title='Save precursor configuration',
-                    filetypes=(('yaml files','*.yaml'),('all files','*,*')))
-
-        print('TODO: save new template',fpath)
-        if not fpath == '':
-            if DEBUG: print(tpl.yaml_template.format(**self.params))
-            with open(fpath,'w') as f:
-                f.write(tpl.yaml_template.format(**self.params))
-
-    def generate(self):
-        self.get_all_params()
-        print('Generating case files!')
-
-
-    #==========================================================================
-    #
     # validation routines
     #
 
@@ -695,6 +562,99 @@ class MainWindow(tk.Frame):
 
     def update_temperature_init(self,initType):
         print('temperatureInitType = '+initType)
+
+
+    #==========================================================================
+    #
+    # actions
+    #
+
+    def restore_defaults(self):
+        """It's kind of a PITA, but binding tk.StringVar to the widgets
+        and trying to udpate it in the validate command breaks the
+        callback routine. So instead of being able to just call 
+            tk.StringVar.set(value),
+        we instead have to call
+            tk.Entry.delete(0, END)
+            tk.Entry.insert(0, value).
+        """
+        print('Restoring defaults for '+self.template.get())
+        params = tpl.read_template(self.template.get())
+        if DEBUG: print(params)
+        self.params = params
+
+        for name, val in params.iteritems():
+            try:
+                widget = getattr(self, name)
+            except AttributeError:
+                print('Note: widget "'+name+'" does not exist')
+            else:
+                if widget.winfo_class() == 'Entry':
+                    if DEBUG: print('Setting entry "'+name+'"')
+                    widget.delete(0, tk.END)
+                    widget.insert(0, val)
+                else:
+                    # we have a control variable instead of widget
+                    if DEBUG: print('Setting variable for "{}" ({})'.format(name,widget.winfo_class()))
+                    wvar = getattr(self, name+'Var')
+                    wvar.set(val)
+        
+        """update active text widgets"""
+        self.calc_grid_res()
+        #self.update_profiles()
+        self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
+        self.update_decomp(self.decompTypeVar.get())
+        self.update_coriolis()
+        self.update_velocity_init(self.velocityInitTypeVar.get())
+        self.update_temperature_init(self.temperatureInitTypeVar.get())
+        self.update_surface_bc()
+
+
+    def get_all_params(self):
+        for name, val in self.params.iteritems():
+            dtype = type(val)
+            try:
+                widget = getattr(self, name)
+            except AttributeError:
+                pass
+            else:
+                if widget.winfo_class() == 'Entry':
+                    if DEBUG: print('Updated variable "{}" ({}) from Entry'.format(name,str(dtype)))
+                    wvar = widget.get()
+                else:
+                    # we have a control variable instead of widget
+                    if DEBUG:
+                        print('Updated variable "{}" ({}) from {}'.format(
+                            name, str(dtype), widget.winfo_class()) )
+                    wvar = getattr(self, name+'Var').get()
+
+                if dtype is list:
+                    dtype = type(val[0])
+                    vals = wvar.strip('[]').split(',')
+                    vals = [ dtype(val) for val in vals ]
+                    self.params[name] = vals
+                    if DEBUG: print('  reconstructed list: {}'.format(vals))
+                else:
+                    self.params[name] = dtype(wvar)
+
+
+    def save_template(self,fpath=None):
+        self.get_all_params()
+        if fpath is None:
+            fpath = filedialog.asksaveasfilename(
+                    initialdir=os.path.join(tpl.mypath, 'simulation_templates'),
+                    title='Save precursor configuration',
+                    filetypes=(('yaml files','*.yaml'),('all files','*,*')))
+
+        print('TODO: save new template',fpath)
+        if not fpath == '':
+            if DEBUG: print(tpl.yaml_template.format(**self.params))
+            with open(fpath,'w') as f:
+                f.write(tpl.yaml_template.format(**self.params))
+
+    def generate(self):
+        self.get_all_params()
+        print('Generating case files!')
 
 
     #==========================================================================
