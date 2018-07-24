@@ -54,20 +54,21 @@ class MainWindow(tk.Frame):
         self.velocityInitTypeVar = tk.StringVar(self.master, value='geostrophic')
         self.temperatureInitTypeVar = tk.StringVar(self.master, value='simple')
         self.sourceTypeVar = tk.StringVar(self.master, value='single height')
-#        self.U0Mag = 8.0  # Initial condition for wind speed (m/s).
-#        self.dir = 270.0  # Initial condition for wind direction (deg).
-#        self.windHeight = 80.0  # Height at which to drive mean wind to U0Mag/dir (m).
+        #self.U0Mag = 8.0  # Initial condition for wind speed (m/s).
+        #self.dir = 270.0  # Initial condition for wind direction (deg).
+        #self.windHeight = 80.0  # Height at which to drive mean wind to U0Mag/dir (m).
 #        self.p_rgh0 = 0.0  # Initial pressure (minus the hydrostatic variation and normalized by density) (m^2/s^2).
 #        self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
 #        self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
 #        self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
-#        self.TGradUpper = 0.003  # Potential temperature gradient above the strong inversion (K/m).
-#        self.zInversion = 750.0  # Height of the middle of the initial strong capping inversion (m).
-#        self.inversionWidth = 100.0  # Vertical width of the intial strong capping inversion (m).
-#        self.TBottom = 300.0  # Initial potential temperature at bottom of strong capping inversion (K).
-#        self.TTop = 305.0  # Initial potential temperature at top of strong capping inversion (K).
-#
-#        """surface controls"""
+        #self.TGradUpper = 0.003  # Potential temperature gradient above the strong inversion (K/m).
+        #self.zInversion = 750.0  # Height of the middle of the initial strong capping inversion (m).
+        #self.inversionWidth = 100.0  # Vertical width of the intial strong capping inversion (m).
+        #self.TBottom = 300.0  # Initial potential temperature at bottom of strong capping inversion (K).
+        #self.TTop = 305.0  # Initial potential temperature at top of strong capping inversion (K).
+ 
+        """surface controls"""
+        self.surfaceBCTypeVar = tk.StringVar(self.master, value='fixed flux')
 #        self.qwall = [0.0,0.0,0.0]  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
 #        self.Rwall = [0.0,0.0,0.0,0.0,0.0,0.0]  # Initial wall shear stress (m^2/s^2).
 #        self.kappa = 0.4  # von Karman constant.
@@ -405,7 +406,27 @@ class MainWindow(tk.Frame):
         section = tk.LabelFrame(self.scrollableframe, text='Surface Conditions',
                                 font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
-
+        self.surfaceBCType = self.OptionMenuRow(
+                section,
+                'surfaceBCType',
+                'Surface conditions (flux for unstable, heating rate for stable)',
+                args=['fixed flux','fixed heating rate'],
+                variable=self.surfaceBCTypeVar,
+                command=self.update_surface_bc)
+        vcmd = self.register(self.update_surface_bc)
+        self.z0 = self.EntryRow(section, 'z0',
+                                'Surface roughness, for loglaw init and Rwall (m)',
+                                vcmd=vcmd)
+        self.fluxInfoText = tk.Label(section, text='= W/m^2')
+        self.qwall = self.EntryRow(section, 'qwall',
+                                   'Temperature flux, negative is into domain (K-m/s)',
+                                   vcmd=vcmd,
+                                   extras=[self.fluxInfoText])
+        self.heatingInfoText = tk.Label(section, text='heating')
+        self.heatingRate = self.EntryRow(section, 'heatingRate',
+                                         'Surface temperature change rate, negative is cooling (K/s)',
+                                         vcmd=vcmd,
+                                         extras=[self.heatingInfoText])
 
     def init_advanced_controls(self):
         #section = tk.LabelFrame(self.master, text='Advanced Controls')
@@ -456,6 +477,7 @@ class MainWindow(tk.Frame):
         self.update_coriolis()
         self.update_velocity_init(self.velocityInitTypeVar.get())
         self.update_temperature_init(self.temperatureInitTypeVar.get())
+        self.update_surface_bc()
 
 
     def save_template(self):
@@ -555,7 +577,7 @@ class MainWindow(tk.Frame):
         for zi,Ui,Vi in zip(self.z,self.U,self.V):
             rowdata = '{}  {}  {}\n'.format(zi,Ui,Vi)
             self.profileTable.insert(tk.END, rowdata)
-        return True
+        return True # so the widget isn't disabled
 
     def update_decomp(self,decompType):
         if decompType=='simple':
@@ -584,6 +606,42 @@ class MainWindow(tk.Frame):
         else:
             raise ValueError('Unexpected source type: '+sourceType)
         self.update_profiles()
+
+
+    def update_surface_bc(self,name=None):
+        R = 287. # [J/(kg-K)]
+        pref = 101300. # standard atmospheric pressure at sea level [Pa]
+        rhoref = pref / R / float(self.TRef.get())
+        Cp = 3.5*R # gamma/(gamma-1) * R
+        qwall = float(self.qwall.get())
+        heatingRate = float(self.heatingRate.get())
+
+        flux = qwall * rhoref * Cp
+        fluxdesc = ''
+        if flux < 0:
+            fluxdesc = 'HEATING'
+        elif flux > 0:
+            fluxdesc = 'COOLING'
+        self.fluxInfoText['text'] = '= {} W/m^2 {}'.format(np.abs(flux),fluxdesc)
+
+        heatingdesc = ''
+        if heatingRate > 0:
+            heatingdesc = 'HEATING'
+        elif heatingRate < 0:
+            heatingdesc = 'COOLING'
+        self.heatingInfoText['text'] = heatingdesc
+
+        surfaceBCType = self.surfaceBCTypeVar.get()
+        if surfaceBCType == 'fixed flux':
+            self.qwall.config(state='normal')
+            self.heatingRate.config(state='disabled')
+        elif surfaceBCType == 'fixed heating rate':
+            self.qwall.config(state='disabled')
+            self.heatingRate.config(state='normal')
+        else:
+            raise ValueError('Unexpected surfaceBCType: '+surfaceBCType)
+
+        return True # so the widget isn't disabled
 
 
     def update_velocity_init(self,initType):

@@ -43,7 +43,8 @@ veer: 0.0  # Veer (deg).
 
 
 # surface controls
-qwall: [0.0, 0.0, 0.0]  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
+surfaceBCType: 'fixed flux'
+qwall: 0.0  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
 Rwall: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # Initial wall shear stress (m^2/s^2).
 kappa: 0.4  # von Karman constant.
 z0: 0.15  # Surface roughness (m).
