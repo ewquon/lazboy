@@ -151,25 +151,36 @@ class MainWindow(tk.Frame):
     #
 
     def init_window(self):
+        self.top = tk.Canvas(self.master)
+        self.middle = tk.Canvas(self.master)
+        self.bottom = tk.Canvas(self.master)
+        self.top.pack(side='top', fill='x')
+        self.middle.pack(side='top', fill='both', expand=True)
+        self.bottom.pack(side='top', fill='x')
+
         # top
-        text = tk.Label(self.master, text='Canonical ABL template:')
-        #stability_list = ['unstable','neutral','stable']
+        text = tk.Label(self.top, text='Canonical ABL template:')
         template_list = tpl.get_templates()
-        self.template_option = tk.OptionMenu(self.master,
+        self.template_option = tk.OptionMenu(self.top,
                                              self.template,
                                              *template_list)
-        self.restore_button = tk.Button(self.master,
+        self.restore_button = tk.Button(self.top,
                                         text='Restore defaults',
                                         command=self.restore_defaults)
-        self.save_button = tk.Button(self.master,
+        self.save_button = tk.Button(self.top,
                                      text='Save template',
                                      command=self.save_template)
-        text.grid(row=self.nextrow(), sticky=tk.E)
-        self.template_option.grid(row=self.lastrow, column=1, sticky=tk.W)
-        self.restore_button.grid(row=self.lastrow, column=2)
-        self.save_button.grid(row=self.lastrow, column=3)
+        #text.grid(row=0, sticky=tk.E)
+        #self.template_option.grid(row=0, column=1, sticky=tk.W)
+        #self.restore_button.grid(row=0, column=2)
+        #self.save_button.grid(row=0, column=3)
+        text.pack(side='left')
+        self.template_option.pack(side='left', padx=20)
+        self.restore_button.pack(side='left', padx=5)
+        self.save_button.pack(side='left')
 
         # main part of window
+        self.create_main_canvas()
         self.init_domain_controls()
         self.init_decomp_controls()
         self.init_general_controls()
@@ -178,15 +189,40 @@ class MainWindow(tk.Frame):
         self.init_advanced_controls()
 
         # bottom
-        self.generate_button = tk.Button(self.master,
+        self.generate_button = tk.Button(self.bottom,
                                          text='Generate case files!',
                                          command=self.generate)
-        self.generate_button.grid(row=self.nextrow(), columnspan=4,
-                                  sticky='nesw') # fill span
+        #self.generate_button.grid(row=2), columnspan=4,
+        #                          sticky='nesw') # fill span
+        self.generate_button.pack(side='top', fill='x')
+
+
+    def create_main_canvas(self):
+        """Create a canvas to put all the controls in so we can
+        implement a scrollbar.
+        """
+        self.canvas = tk.Canvas(self.middle)
+        self.canvas.pack(side='left', fill='both', expand=True)
+        self.scrollbar = tk.Scrollbar(self.middle, command=self.canvas.yview)
+        self.scrollbar.pack(side='left', fill='y')
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # update scrolling region after starting main loop
+        def on_configure(event):
+            self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+        self.canvas.bind('<Configure>', on_configure)
+
+        # put frame in canvas
+        # (this is the trick to make the scrollable frame work!)
+        self.scrollableframe = tk.Frame(self.canvas)
+        self.canvas.create_window((0,0), anchor='nw',
+                                  window=self.scrollableframe)
 
 
     def init_domain_controls(self):
-        section = tk.LabelFrame(self.master, text='Domain')
+        #section = tk.LabelFrame(self.master, text='Domain')
+        section = tk.LabelFrame(self.scrollableframe, text='Domain',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
         vcmd = self.register(self.update_grid_ext)
         self.xMin = self.EntryRow(section,
@@ -227,7 +263,9 @@ class MainWindow(tk.Frame):
 
 
     def init_decomp_controls(self):
-        section = tk.LabelFrame(self.master, text='Domain Decomposition')
+        #section = tk.LabelFrame(self.master, text='Domain Decomposition')
+        section = tk.LabelFrame(self.scrollableframe, text='Domain Decomposition',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
         vcmd = self.register(self.update_gridsize_decomp)
         self.PPN = self.EntryRow(section,
@@ -252,7 +290,9 @@ class MainWindow(tk.Frame):
 
 
     def init_general_controls(self):
-        section = tk.LabelFrame(self.master, text='General Settings')
+        #section = tk.LabelFrame(self.master, text='General Settings')
+        section = tk.LabelFrame(self.scrollableframe, text='General Settings',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
         self.TRef = self.EntryRow(section,
                                   'TRef','Reference potential temperature (K)')
@@ -268,10 +308,13 @@ class MainWindow(tk.Frame):
 
 
     def init_atmosphere_controls(self):
-        section = tk.LabelFrame(self.master, text='Atmospheric Conditions')
+        #section = tk.LabelFrame(self.master, text='Atmospheric Conditions')
+        section = tk.LabelFrame(self.scrollableframe, text='Atmospheric Conditions',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
 
-        header = tk.Label(section, text='Initial conditions:')
+        header = tk.Label(section,
+                          text='Initial conditions', font='-slant italic')
         header.grid(row=self.nextrow(), column=0, sticky=tk.W)
         self.plot_init_button = tk.Button(section,
                                           text='PLOT',
@@ -318,7 +361,8 @@ class MainWindow(tk.Frame):
                                   'TTop',
                                   'Initial potential temperature at top of strong capping inversion (K).')
 
-        header = tk.Label(section, text='Background conditions:')
+        header = tk.Label(section,
+                          text='Background conditions', font='-slant italic')
         header.grid(row=self.nextrow(), column=0, sticky=tk.W)
         self.plot_bkgnd_button = tk.Button(section,
                                            text='PLOT',
@@ -338,12 +382,16 @@ class MainWindow(tk.Frame):
 
 
     def init_surface_controls(self):
-        section = tk.LabelFrame(self.master, text='Surface Conditions')
+        #section = tk.LabelFrame(self.master, text='Surface Conditions')
+        section = tk.LabelFrame(self.scrollableframe, text='Surface Conditions',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
 
 
     def init_advanced_controls(self):
-        section = tk.LabelFrame(self.master, text='Advanced Controls')
+        #section = tk.LabelFrame(self.master, text='Advanced Controls')
+        section = tk.LabelFrame(self.scrollableframe, text='Advanced Controls',
+                                font='-weight bold')
         section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
 
     #==========================================================================
@@ -390,11 +438,11 @@ class MainWindow(tk.Frame):
 
 
     def save_template(self):
-        print('Saving template')
+        print('TODO: save new template')
 
 
     def generate(self):
-        print('Generating case files')
+        print('Generating case files!')
 
 
     #==========================================================================
@@ -505,37 +553,33 @@ class MainWindow(tk.Frame):
 #------------------------------------------------------------------------------
 # set up scrolling
 
-def on_configure(event):
-    # update scrollregion after starting 'mainloop'
-    # when all widgets are in canvas
-    canvas.configure(scrollregion=canvas.bbox('all'))
+#def on_configure(event):
+#    # update scrollregion after starting 'mainloop'
+#    # when all widgets are in canvas
+#    print('update scrollregion')
+#    canvas.configure(scrollregion=canvas.bbox('all'))
 
 #------------------------------------------------------------------------------
 
 root = tk.Tk()  # the root window
 #root.wm_geometry(...)
+#root.geometry('800x600')
 
-# create canvas with scrollbar
-canvas = tk.Canvas(root)
-canvas.pack(side=tk.LEFT)
-scrollbar = tk.Scrollbar(root, command=canvas.yview)
-scrollbar.pack(side=tk.LEFT, fill='y')
-
-canvas.configure(yscrollcommand=scrollbar.set)
-
-# update scrolling region after starting main loop
-canvas.bind('<Configure>', on_configure)
-
-# put frame in canvas
-#frame = tk.Frame(root, relief=tk.GROOVE)
-#frame = tk.Frame(canvas)
+# # create canvas with scrollbar
+# canvas = tk.Canvas(root)
+# canvas.pack(side=tk.LEFT)
+# scrollbar = tk.Scrollbar(root, command=canvas.yview)
+# scrollbar.pack(side=tk.LEFT, fill='y')
+# 
+# canvas.configure(yscrollcommand=scrollbar.set)
+# 
+# # update scrolling region after starting main loop
+# canvas.bind('<Configure>', on_configure)
 
 # create instance of window
-#my_gui = MainWindow(root)
-
-my_gui = MainWindow(canvas)
+my_gui = MainWindow(root)
 root.title('SOWFA Precursor Setup')
 
-canvas.create_window((0,0), window=my_gui, anchor='nw')
+# canvas.create_window((0,0), window=my_gui, anchor='nw')
 
 root.mainloop()
