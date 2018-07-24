@@ -6,15 +6,19 @@
 #
 from __future__ import print_function
 import os
+import yaml
 import numpy as np
+
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 try:
     # Python 2.7
     import tkFileDialog as filedialog
+    import tkSimpleDialog as simpledialog
 except ImportError:
     # Python 3
-    import tk.filedialog as filedialog
+    import tkinter.filedialog as filedialog
+    import tkinter.simpledialog as simpledialog
 
 import template as tpl
 
@@ -33,11 +37,35 @@ class MainWindow(tk.Frame):
         self.template = tk.StringVar(master, value=default_template)
         self.params = tpl.read_template(default_template)
 
+        self.user_info()
+
         self.init_vars()
         self.init_window()
         self.restore_defaults()
 
 
+    def user_info(self):
+        """Read or set up (first time) system information"""
+        configpath = os.path.join(os.environ['HOME'],'.sowfa_defaults')
+        try:
+            with open(configpath,'r') as f:
+                config = yaml.load(f)
+        except IOError:
+            config = dict()
+            config['email'] = simpledialog.askstring(
+                                    title='Default SOWFA configuration',
+                                    prompt='Notification email',
+                                    initialvalue='Richard.Astley@nrel.gov') 
+            config['allocation'] = simpledialog.askstring(
+                                    title='Default SOWFA configuration',
+                                    prompt='Default allocation',
+                                    initialvalue='windsim') 
+            with open(configpath,'w') as f:
+                yaml.dump(config, f, default_flow_style=False)
+            print('Saved default SOWFA configuration info to '+configpath)
+        if DEBUG: print(config)
+
+            
     def init_vars(self):
         # Need to initialize some variables before we can create the widgets
         # However, most values associated with Entry boxes will be created
@@ -583,7 +611,7 @@ class MainWindow(tk.Frame):
         if DEBUG: print(params)
         self.params = params
 
-        for name, val in params.iteritems():
+        for name, val in params.items():
             try:
                 widget = getattr(self, name)
             except AttributeError:
