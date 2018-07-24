@@ -626,24 +626,15 @@ class MainWindow(tk.Frame):
 #------------------------------------------------------------------------------
 
 root = tk.Tk()  # the root window
-#root.wm_geometry(...)
 #root.geometry('800x600')
 
-# # create canvas with scrollbar
-# canvas = tk.Canvas(root)
-# canvas.pack(side=tk.LEFT)
-# scrollbar = tk.Scrollbar(root, command=canvas.yview)
-# scrollbar.pack(side=tk.LEFT, fill='y')
-# 
-# canvas.configure(yscrollcommand=scrollbar.set)
-# 
-# # update scrolling region after starting main loop
-# canvas.bind('<Configure>', on_configure)
+# make it cover the entire screen
+w, h = root.winfo_screenwidth(), root.winfo_screenheight()
+#root.overrideredirect(1) # get rid of titlebar / menus
+root.geometry('{:d}x{:d}+0+0'.format(w,h))
 
 # create instance of window
 my_gui = MainWindow(root)
 root.title('SOWFA Precursor Setup')
-
-# canvas.create_window((0,0), window=my_gui, anchor='nw')
 
 root.mainloop()
