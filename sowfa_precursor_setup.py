@@ -639,23 +639,41 @@ class MainWindow(tk.Frame):
 
 
     def save_template(self,fpath=None):
-        self.get_all_params()
         if fpath is None:
+            self.get_all_params()
             fpath = filedialog.asksaveasfilename(
-                    initialdir=os.path.join(tpl.mypath, 'simulation_templates'),
-                    title='Save precursor configuration',
-                    filetypes=(('yaml files','*.yaml'),('all files','*,*')))
+                        initialdir=os.path.join(tpl.mypath, 'simulation_templates'),
+                        title='Save precursor configuration',
+                        filetypes=(('yaml files','*.yaml'),('all files','*,*')),
+                    )
 
-        print('TODO: save new template',fpath)
         if not fpath == '':
             if DEBUG: print(tpl.yaml_template.format(**self.params))
             with open(fpath,'w') as f:
                 f.write(tpl.yaml_template.format(**self.params))
+            print('Wrote out '+fpath)
 
     def generate(self):
         self.get_all_params()
-        print('Generating case files!')
+        self.check_sanity()
 
+        dpath = filedialog.askdirectory(
+                    initialdir=os.getcwd(),
+                    title='Specify new simulation directory',
+                )
+
+        if not dpath == '':
+            print('Generating case files in '+dpath)
+            self.save_template(fpath=os.path.join(dpath,'config.yaml'))
+
+
+    #==========================================================================
+    #
+    # sanity check routines
+    #
+
+    def check_sanity(self):
+        print('TODO: add sanity checks!')
 
     #==========================================================================
     #
