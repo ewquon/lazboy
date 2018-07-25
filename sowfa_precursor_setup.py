@@ -58,7 +58,10 @@ class MainWindow(tk.Frame):
 
         self.master = master
         self.template = tk.StringVar(master, value=default_template)
-        self.params = tpl.read_template(default_template)
+        template_path = os.path.join(tpl.mypath,
+                                     'simulation_templates',
+                                     default_template+'.yaml')
+        self.params = tpl.read_template(template_path)
 
         self.user_info()
 
@@ -181,12 +184,21 @@ class MainWindow(tk.Frame):
         self.middle.pack(side='top', fill='both', expand=True, pady=5)
         self.bottom.pack(side='top', fill='x', pady=5)
 
+        # get available templates
+        template_list, custom_config_list = tpl.get_templates()
+        template_options = template_list.keys()
+        if len(custom_config_list) > 0:
+            template_options += ['---'] + custom_config_list.keys()
+            for key,val in custom_config_list.items():
+                template_list[key] = val
+            self.template.set(key)
+        self.template_list = template_list
+
         # top
         text = tk.Label(self.top, text='Canonical ABL template:')
-        template_list = tpl.get_templates()
         self.template_option = tk.OptionMenu(self.top,
                                              self.template,
-                                             *template_list)
+                                             *template_options)
         self.restore_button = tk.Button(self.top,
                                         text='Restore defaults',
                                         command=self.restore_defaults)
@@ -645,8 +657,9 @@ class MainWindow(tk.Frame):
             tk.Entry.delete(0, END)
             tk.Entry.insert(0, value).
         """
-        print('Restoring defaults for '+self.template.get())
-        params = tpl.read_template(self.template.get())
+        name = self.template.get()
+        print('Restoring defaults for '+name)
+        params = tpl.read_template(self.template_list[name])
         if DEBUG: print(params)
         self.params = params
 

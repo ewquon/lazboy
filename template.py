@@ -7,13 +7,21 @@ mypath = os.path.dirname(os.path.realpath(__file__))
 def get_templates():
     dpath = os.path.join(mypath, 'simulation_templates')
     listing = os.listdir(dpath)
-    templates = [ os.path.splitext(name)[0] for name in listing
+    templates = { os.path.splitext(name)[0]: os.path.join(dpath,name)
+                    for name in listing
                     if os.path.isfile(os.path.join(dpath,name))
-                        and name.endswith('.yaml') ]
-    return templates
+                        and name.endswith('.yaml') }
 
-def read_template(name):
-    fpath = os.path.join(mypath, 'simulation_templates', name+'.yaml')
+    listing = os.listdir(os.getcwd())
+    print(listing)
+    custom_configs = { os.path.splitext(name)[0]: os.path.join(os.getcwd(),name)
+                        for name in listing
+                        if os.path.isfile(name) and name.endswith('.yaml') }
+
+    return templates, custom_configs
+
+def read_template(fpath):
+    #fpath = os.path.join(mypath, 'simulation_templates', name+'.yaml')
     print('Loaded template: '+fpath)
     with open(fpath,'r') as f:
         params = yaml.load(f)
