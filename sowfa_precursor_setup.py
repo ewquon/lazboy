@@ -6,6 +6,7 @@
 #
 from __future__ import print_function
 import os
+import shutil
 import yaml
 import numpy as np
 
@@ -23,6 +24,28 @@ except ImportError:
 import template as tpl
 
 DEBUG = True
+
+# common files
+soln_fields = ['U','T','p_rgh','k','kappat','nuSgs','Rwall']
+constant_files = [
+        'turbulenceProperties',
+        'transportProperties',
+        'LESProperties',
+        'g',
+        ] # write out custom forcingTable if needed
+system_files = [
+        'controlDict.1',
+        'fvSolution',
+        'fvSchemes',
+        'decomposeParDict',
+        'refineMeshDict.local',
+        'changeDictionaryDict.updateBCs.cyclic'
+        ] # write out custom setFieldABLDict
+sampling_files = [
+        'sliceDataInstantaneous',
+        'boundaryDataPre'
+        ]
+
 
 #class MainWindow(object):
 class MainWindow(tk.Frame):
@@ -49,21 +72,23 @@ class MainWindow(tk.Frame):
         configpath = os.path.join(os.environ['HOME'],'.sowfa_defaults')
         try:
             with open(configpath,'r') as f:
-                config = yaml.load(f)
+                self.config = yaml.load(f)
         except IOError:
-            config = dict()
-            config['email'] = simpledialog.askstring(
-                                    title='Default SOWFA configuration',
-                                    prompt='Notification email',
-                                    initialvalue='Richard.Astley@nrel.gov') 
-            config['allocation'] = simpledialog.askstring(
-                                    title='Default SOWFA configuration',
-                                    prompt='Default allocation',
-                                    initialvalue='windsim') 
+            self.config = dict()
+            self.config['email'] = simpledialog.askstring(
+                                        title='Default SOWFA configuration',
+                                        prompt='Notification email',
+                                        initialvalue='Richard.Astley@nrel.gov'
+                                    )
+            self.config['allocation'] = simpledialog.askstring(
+                                            title='Default SOWFA configuration',
+                                            prompt='Default allocation',
+                                            initialvalue='windsim'
+                                        )
             with open(configpath,'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
             print('Saved default SOWFA configuration info to '+configpath)
-        if DEBUG: print(config)
+        if DEBUG: print(self.config)
 
             
     def init_vars(self):
@@ -153,8 +178,8 @@ class MainWindow(tk.Frame):
         self.middle = tk.Canvas(self.master)
         self.bottom = tk.Canvas(self.master)
         self.top.pack(side='top', fill='x')
-        self.middle.pack(side='top', fill='both', expand=True)
-        self.bottom.pack(side='top', fill='x')
+        self.middle.pack(side='top', fill='both', expand=True, pady=5)
+        self.bottom.pack(side='top', fill='x', pady=5)
 
         # top
         text = tk.Label(self.top, text='Canonical ABL template:')
@@ -168,13 +193,9 @@ class MainWindow(tk.Frame):
         self.save_button = tk.Button(self.top,
                                      text='Save template',
                                      command=self.save_template)
-        #text.grid(row=0, sticky=tk.E)
-        #self.template_option.grid(row=0, column=1, sticky=tk.W)
-        #self.restore_button.grid(row=0, column=2)
-        #self.save_button.grid(row=0, column=3)
         text.pack(side='left')
         self.template_option.pack(side='left', padx=20)
-        self.restore_button.pack(side='left', padx=5)
+        self.restore_button.pack(side='left', padx=20)
         self.save_button.pack(side='left')
 
         # main part of window
@@ -184,14 +205,13 @@ class MainWindow(tk.Frame):
         self.init_general_controls()
         self.init_atmosphere_controls()
         self.init_surface_controls()
-        self.init_advanced_controls()
+        #self.init_advanced_controls()
 
         # bottom
         self.generate_button = tk.Button(self.bottom,
                                          text='Generate case files!',
+                                         fg='blue',
                                          command=self.generate)
-        #self.generate_button.grid(row=2), columnspan=4,
-        #                          sticky='nesw') # fill span
         self.generate_button.pack(side='top', fill='x')
 
 
@@ -423,11 +443,11 @@ class MainWindow(tk.Frame):
                                          vcmd=vcmd,
                                          extras=[self.heatingInfoText])
 
-    def init_advanced_controls(self):
-        #section = tk.LabelFrame(self.master, text='Advanced Controls')
-        section = tk.LabelFrame(self.scrollableframe, text='Advanced Controls',
-                                font='-weight bold')
-        section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
+#    def init_advanced_controls(self):
+#        #section = tk.LabelFrame(self.master, text='Advanced Controls')
+#        section = tk.LabelFrame(self.scrollableframe, text='Advanced Controls',
+#                                font='-weight bold')
+#        section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
 
     #==========================================================================
     #
@@ -502,7 +522,26 @@ class MainWindow(tk.Frame):
         self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
         zref = float(self.windHeight.get())
         Uref = float(self.U0Mag.get())
-        wdir = 270. - float(self.dir.get())
+        wdir = float(self.dir.get())
+        if (wdir >= 337.5) and (wdir < 22.5):
+            self.wdirname = 'north'
+        elif (wdir >= 22.5) and (wdir < 67.5):
+            self.wdirname = 'northeast'
+        elif (wdir >= 67.5) and (wdir < 112.5):
+            self.wdirname = 'east'
+        elif (wdir >= 112.5) and (wdir < 157.5):
+            self.wdirname = 'southeast'
+        elif (wdir >= 157.5) and (wdir < 202.5):
+            self.wdirname = 'south'
+        elif (wdir >= 202.5) and (wdir < 247.5):
+            self.wdirname = 'southwest'
+        elif (wdir >= 247.5) and (wdir < 292.5):
+            self.wdirname = 'west'
+        elif (wdir >= 292.5) and (wdir < 337.5):
+            self.wdirname = 'northwest'
+        else:
+            raise ValueError('Unexpected wind direction: {:f}'.format(wdir))
+        wdir = 270. - wdir
         if wdir < 0: wdir += 360.
         wdir *= np.pi/180.
         alpha = float(self.alpha.get())
@@ -570,7 +609,7 @@ class MainWindow(tk.Frame):
             heatingdesc = 'HEATING'
         elif heatingRate < 0:
             heatingdesc = 'COOLING'
-        self.heatingInfoText['text'] = heatingdesc
+        self.heatingInfoText['text'] = '= {} K/hr {}'.format(3600*np.abs(heatingRate),heatingdesc)
 
         surfaceBCType = self.surfaceBCTypeVar.get()
         if surfaceBCType == 'fixed flux':
@@ -617,13 +656,14 @@ class MainWindow(tk.Frame):
             except AttributeError:
                 print('Note: widget "'+name+'" does not exist')
             else:
-                if widget.winfo_class() == 'Entry':
+                widget_class = widget.winfo_class()
+                if widget_class in ['Entry','Text']:
                     if DEBUG: print('Setting entry "'+name+'"')
                     widget.delete(0, tk.END)
-                    widget.insert(0, val)
+                    widget.insert(0, str(val))
                 else:
                     # we have a control variable instead of widget
-                    if DEBUG: print('Setting variable for "{}" ({})'.format(name,widget.winfo_class()))
+                    if DEBUG: print('Setting variable for "{}" ({})'.format(name,widget_class))
                     wvar = getattr(self, name+'Var')
                     wvar.set(val)
         
@@ -639,7 +679,7 @@ class MainWindow(tk.Frame):
 
 
     def get_all_params(self):
-        for name, val in self.params.iteritems():
+        for name, val in self.params.items():
             dtype = type(val)
             try:
                 widget = getattr(self, name)
@@ -665,6 +705,8 @@ class MainWindow(tk.Frame):
                 else:
                     self.params[name] = dtype(wvar)
 
+        self.params['profileTable'] = self.profileTable.get('1.0', tk.END)
+
 
     def save_template(self,fpath=None):
         if fpath is None:
@@ -681,19 +723,101 @@ class MainWindow(tk.Frame):
                 f.write(tpl.yaml_template.format(**self.params))
             print('Wrote out '+fpath)
 
+
     def generate(self):
         self.get_all_params()
+        for key,val in self.config.items():
+            self.params[key] = val
+        self.params['nNodes'] = int(self.coresNeeded)
+
         self.check_sanity()
 
         dpath = filedialog.askdirectory(
                     initialdir=os.getcwd(),
                     title='Specify new simulation directory',
                 )
+        casename = os.path.split(dpath)[-1]
+        self.params['casename'] = simpledialog.askstring(
+                                        title='runscript',
+                                        prompt='New case name',
+                                        initialvalue=casename
+                                    )
 
+        """Create run directory structure here"""
         if not dpath == '':
+            srcdir = os.path.join(tpl.mypath, 'simulation_templates')
             print('Generating case files in '+dpath)
-            self.save_template(fpath=os.path.join(dpath,'config.yaml'))
+            print('  from files in '+srcdir)
+            self.save_template(fpath=os.path.join(dpath,'setup.yaml'))
 
+            # write setUp file
+            fpath = os.path.join(dpath,'setUp')
+            with open(fpath,'w') as f:
+                f.write(tpl.setUp_template.format(**self.params))
+            print('Wrote out '+fpath)
+
+            # initial conditions
+            os.makedirs(os.path.join(dpath,'0.original'))
+            for fname in soln_fields:
+                shutil.copy2(os.path.join(srcdir,'0.original',fname),
+                             os.path.join(dpath,'0.original'))
+            surf_bc = self.surfaceBCTypeVar.get().replace(' ','')
+            shutil.copy2(os.path.join(srcdir,'0.original','qwall.'+surf_bc),
+                         os.path.join(dpath,'0.original','qwall'))
+
+            # constant files
+            os.makedirs(os.path.join(dpath,'constant','polyMesh'))
+            for fname in constant_files:
+                shutil.copy2(os.path.join(srcdir,'constant',fname),
+                             os.path.join(dpath,'constant'))
+            source_type = self.sourceTypeVar.get().replace(' ','')
+            shutil.copy2(os.path.join(srcdir,'constant','ABLProperties.'+source_type),
+                         os.path.join(dpath,'constant','ABLProperties'))
+            shutil.copy2(os.path.join(srcdir,'constant','polyMesh','blockMeshDict'),
+                         os.path.join(dpath,'constant','polyMesh'))
+            if source_type == 'column':
+                # write out forcing table
+                fpath = os.path.join(dpath,'constant','momentumForcingTable')
+                with open(fpath,'w') as f:
+                    f.write('sourceHeightsMomentum\n(\n\t')
+                    f.write('\n\t'.join([str(z) for z in self.z]))
+                    f.write('\n);\n\n')
+                    f.write('sourceTableMomentumX\n(\n')
+                    xmom_sources = ' '.join([str(u) for u in self.U])
+                    f.write('\t(0.0 '+xmom_sources+')\n')
+                    f.write('\t(90000.0 '+xmom_sources+')\n')
+                    f.write(');\n\n')
+                    ymom_sources = ' '.join([str(v) for v in self.V])
+                    f.write('\t(0.0 '+ymom_sources+')\n')
+                    f.write('\t(90000.0 '+ymom_sources+')\n')
+                    f.write(');\n\n')
+                    zmom_sources = ' '.join(len(self.U.shape)*['0.0'])
+                    f.write('\t(0.0 '+zmom_sources+')\n')
+                    f.write('\t(90000.0 '+zmom_sources+')\n')
+                    f.write(');\n\n')
+                print('Wrote out '+fpath)
+            
+            # solver files
+            os.makedirs(os.path.join(dpath,'system','sampling'))
+            for fname in system_files:
+                shutil.copy2(os.path.join(srcdir,'system',fname),
+                             os.path.join(dpath,'system'))
+            for fname in sampling_files:
+                shutil.copy2(os.path.join(srcdir,'system','sampling',fname),
+                             os.path.join(dpath,'system','sampling'))
+            shutil.copy2(os.path.join(srcdir,'system','changeDictionaryDict.updateBCs.'+self.wdirname),
+                         os.path.join(dpath,'system'))
+
+            # scripts
+            fpath = os.path.join(dpath,'runscript.preprocess')
+            with open(fpath,'w') as f:
+                f.write(tpl.runscript_preprocess_template.format(**self.params))
+            print('Wrote out '+fpath)
+
+            fpath = os.path.join(dpath,'runscript.solve.1')
+            with open(fpath,'w') as f:
+                f.write(tpl.runscript_solve_template.format(**self.params))
+            print('Wrote out '+fpath)
 
     #==========================================================================
     #
