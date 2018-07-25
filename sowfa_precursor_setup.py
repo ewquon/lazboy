@@ -86,7 +86,7 @@ class MainWindow(tk.Frame):
                                             initialvalue='windsim'
                                         )
             with open(configpath,'w') as f:
-                yaml.dump(config, f, default_flow_style=False)
+                yaml.dump(self.config, f, default_flow_style=False)
             print('Saved default SOWFA configuration info to '+configpath)
         if DEBUG: print(self.config)
 
