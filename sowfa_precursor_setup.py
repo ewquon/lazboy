@@ -69,6 +69,13 @@ class MainWindow(tk.Frame):
         self.init_window()
         self.restore_defaults()
 
+        # update window size
+        screen_w, screen_h = master.winfo_screenwidth(), root.winfo_screenheight()
+        master.update() # need to render window before gettin dimensions
+        widgets_w = self.scrollableframe.winfo_width() + self.scrollbar.winfo_width()
+        master.geometry('{:d}x{:d}+0+0'.format(widgets_w,screen_h))
+
+
 
     def user_info(self):
         """Read or set up (first time) system information"""
@@ -423,7 +430,7 @@ class MainWindow(tk.Frame):
         """
         namestr = tk.Label(section, text='profileTable')
         namestr.grid(row=self.nextrow(), column=0)
-        text = ScrolledText(section)
+        text = ScrolledText(section, borderwidth=1)
         text.grid(row=self.lastrow, column=1, columnspan=2, sticky='ew')
         self.profileTable = text
 
@@ -874,11 +881,6 @@ class MainWindow(tk.Frame):
 
 root = tk.Tk()  # the root window
 #root.geometry('800x600')
-
-# make it cover the entire screen
-w, h = root.winfo_screenwidth(), root.winfo_screenheight()
-#root.overrideredirect(1) # get rid of titlebar / menus
-root.geometry('{:d}x{:d}+0+0'.format(w,h))
 
 # create instance of window
 my_gui = MainWindow(root)
