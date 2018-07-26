@@ -573,8 +573,19 @@ class MainWindow(tk.Frame):
         self.WD[freeatm] = WDtop
         self.U = self.WS * np.cos(self.WD)
         self.V = self.WS * np.sin(self.WD)
-        for zi,Ui,Vi in zip(self.z,self.U,self.V):
-            rowdata = '{}  {}  {}\n'.format(zi,Ui,Vi)
+        Tbot = float(self.TBottom.get())
+        Ttop = float(self.TTop.get())
+        width = float(self.inversionWidth.get())
+        Tgrad = float(self.TGradUpper.get())
+        self.T = Tbot * np.ones(self.U.shape)
+        zbot = zinv - width/2
+        ztop = zinv + width/2
+        strong_layer = (self.z >= zbot) & (self.z <= ztop)
+        weak_layer = (self.z > ztop)
+        self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
+        self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
+        for zi,Ui,Vi,Ti in zip(self.z,self.U,self.V,self.T):
+            rowdata = '\t({}  {}  {}  {})\n'.format(zi,Ui,Vi,Ti)
             self.profileTable.insert(tk.END, rowdata)
         return True # so the widget isn't disabled
 
@@ -828,6 +839,11 @@ class MainWindow(tk.Frame):
             shutil.copy2(os.path.join(srcdir,'system','changeDictionaryDict.updateBCs.'+self.wdirname),
                          os.path.join(dpath,'system'))
 
+            fpath = os.path.join(dpath,'system','setFieldsABLDict')
+            with open(fpath,'w') as f:
+                f.write(tpl.setFieldsABLDict_template.format(**self.params))
+            print('Wrote out '+fpath)
+
             # scripts
             fpath = os.path.join(dpath,'runscript.preprocess')
             with open(fpath,'w') as f:
@@ -861,10 +877,16 @@ class MainWindow(tk.Frame):
         plt.show()
 
     def plot_background_conditions(self):
-        # TODO: This is a stub.
         import matplotlib.pyplot as plt
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Background Conditions')
+        ax[0].plot(self.U, self.z, label='U')
+        ax[0].plot(self.V, self.z, label='V')
+        ax[1].plot(self.T, self.z)
+        ax[0].set_ylabel('height [m]')
+        ax[0].set_xlabel('velocity [m/s]')
+        ax[1].set_xlabel('temperature [K]')
+        ax[0].legend(loc='best')
         plt.show()
 
 

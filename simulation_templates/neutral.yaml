@@ -25,6 +25,8 @@ EarthPeriod: 24.0  # Earth's rotation period (hr).
 
 
 # atmosphere controls
+velocityInitType: 'geostrophic'  # How to initialize the base velocity profile (geostrophic, log, table)
+temperatureInitType: 'simple'  # How to initialize the base temperature profile (simple, table)
 U0Mag: 8.0  # Initial condition for wind speed (m/s).
 dir: 270.0  # Initial condition for wind direction (deg).
 windHeight: 80.0  # Height at which to drive mean wind to U0Mag/dir (m).
