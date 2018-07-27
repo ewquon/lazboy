@@ -391,20 +391,24 @@ class MainWindow(tk.Frame):
                                                    command=self.update_temperature_init)
         self.TGradUpper = self.EntryRow(section,
                                         'TGradUpper',
-                                        'Potential temperature gradient above the strong inversion (K/m).')
+                                        'Potential temperature gradient above the strong inversion (K/m).',
+                                        vcmd=vcmd)
         self.zInversion = self.EntryRow(section,
                                         'zInversion',
                                         'Height of the middle of the initial strong capping inversion (m).',
                                         vcmd=vcmd)
         self.inversionWidth = self.EntryRow(section,
                                             'inversionWidth',
-                                            'Vertical width of the intial strong capping inversion (m).')
+                                            'Vertical width of the intial strong capping inversion (m).',
+                                            vcmd=vcmd)
         self.TBottom = self.EntryRow(section,
                                      'TBottom',
-                                     'Initial potential temperature at bottom of strong capping inversion (K).')
+                                     'Initial potential temperature at bottom of strong capping inversion (K).',
+                                     vcmd=vcmd)
         self.TTop = self.EntryRow(section,
                                   'TTop',
-                                  'Initial potential temperature at top of strong capping inversion (K).')
+                                  'Initial potential temperature at top of strong capping inversion (K).',
+                                  vcmd=vcmd)
 
         header = tk.Label(section,
                           text='Background conditions', font='-slant italic')
@@ -412,7 +416,7 @@ class MainWindow(tk.Frame):
         self.plot_bkgnd_button = tk.Button(section,
                                            text='PLOT',
                                            command=self.plot_background_conditions)
-        self.plot_bkgnd_button.grid(row=self.lastrow, column=3, sticky=tk.E)
+        #self.plot_bkgnd_button.grid(row=self.lastrow, column=3, sticky=tk.E)
 
         self.sourceType = self.OptionMenuRow(section, 'sourceType',
                                              'Computed source type',
@@ -439,6 +443,7 @@ class MainWindow(tk.Frame):
         text = ScrolledText(section, borderwidth=1)
         text.grid(row=self.lastrow, column=1, columnspan=2, sticky='ew')
         self.profileTable = text
+        self.plot_bkgnd_button.grid(row=self.lastrow, column=3, sticky=tk.E)
 
 
     def init_surface_controls(self):
@@ -547,8 +552,27 @@ class MainWindow(tk.Frame):
 
 
     def update_ideal_profile(self,name=None):
-        # update direction name
+        zinv = float(self.zInversion.get())
+        Tbot = float(self.TBottom.get())
+        Ttop = float(self.TTop.get())
+        width = float(self.inversionWidth.get())
+        Tgrad = float(self.TGradUpper.get())
         wdir = float(self.dir.get())
+
+        # for plots
+        nz = int(self.nz.get())
+        self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
+
+        # simple temperature profile
+        zbot = zinv - width/2
+        ztop = zinv + width/2
+        strong_layer = (self.z >= zbot) & (self.z <= ztop)
+        weak_layer = (self.z > ztop)
+        self.T = Tbot * np.ones(self.z.shape)
+        self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
+        self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
+
+        # update direction name
         if (wdir >= 337.5) and (wdir < 22.5):
             self.wdirname = 'north'
         elif (wdir >= 22.5) and (wdir < 67.5):
@@ -569,19 +593,12 @@ class MainWindow(tk.Frame):
             raise ValueError('Unexpected wind direction: {:f}'.format(wdir))
 
         if self.idealProfileVar.get():
-            # calculate ideal profile
+            # calculate ideal wind profile
             zref = float(self.windHeight.get())
             Uref = float(self.U0Mag.get())
             alpha = float(self.alpha.get())
             veer = float(self.veer.get()) * np.pi/180.
-            zinv = float(self.zInversion.get())
-            Tbot = float(self.TBottom.get())
-            Ttop = float(self.TTop.get())
-            width = float(self.inversionWidth.get())
-            Tgrad = float(self.TGradUpper.get())
 
-            nz = int(self.nz.get())
-            self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
             wdir = 270. - wdir
             if wdir < 0: wdir += 360.
             wdir *= np.pi/180.
@@ -591,14 +608,6 @@ class MainWindow(tk.Frame):
             self.WD[freeatm] = self.WD[freeatm][0]
             self.U = self.WS * np.cos(self.WD)
             self.V = self.WS * np.sin(self.WD)
-
-            zbot = zinv - width/2
-            ztop = zinv + width/2
-            strong_layer = (self.z >= zbot) & (self.z <= ztop)
-            weak_layer = (self.z > ztop)
-            self.T = Tbot * np.ones(self.U.shape)
-            self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
-            self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
 
             self._update_profile_text()
 
@@ -635,8 +644,10 @@ class MainWindow(tk.Frame):
     def update_source_type(self,sourceType):
         if sourceType=='single height':
             self.profileTable.config(state='disabled',fg='light grey')
+            self.plot_bkgnd_button.config(state='disabled')
         elif sourceType=='column':
             self.profileTable.config(state='normal',fg='black')
+            self.plot_bkgnd_button.config(state='normal')
         else:
             raise ValueError('Unexpected source type: '+sourceType)
         self.update_ideal_profile()
@@ -700,7 +711,8 @@ class MainWindow(tk.Frame):
         into a list of lists, for conversion to 2-D np.ndarray.
         """
         lines = text.split('\n')
-        listlist = [ [ float(val) for val in line.strip().strip('()').split() ] for line in lines ]
+        listlist = [ [ float(val) for val in line.strip().strip('()').split() ]
+                    for line in lines if not line.strip()=='' ]
         return listlist
 
     def _listlist_to_profiles(self,listlist):
@@ -945,19 +957,44 @@ class MainWindow(tk.Frame):
     # Note: importing matplotlib at the beginning causes a crash
 
     def plot_initial_conditions(self):
-        # TODO: This is a stub.
+        inittype = self.velocityInitTypeVar.get()
+        if inittype == 'geostrophic':
+            U0 = float(self.U0Mag.get()) * np.ones(self.z.shape)
+        elif inittype == 'log':
+            zinv = float(self.zInversion.get())
+            z0 = float(self.z0.get())
+            Ug = float(self.U0Mag.get())
+            kappa = self.params['kappa']
+            ustar = kappa * Ug / np.log(zinv/z0)
+            print('u* = {:g} m/s'.format(ustar))
+            U0 = ustar / kappa * np.log(self.z/z0)
+            U0[self.z > zinv] = Ug
+        elif inittype == 'table':
+            U0 = np.sqrt(self.U**2 + self.V**2)
+
         import matplotlib.pyplot as plt
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Initial Conditions')
+        ax[0].plot(U0, self.z)
+        ax[1].plot(self.T, self.z)
+        ax[0].set_ylabel('height [m]')
+        ax[0].set_xlabel('velocity [m/s]')
+        ax[1].set_xlabel('temperature [K]')
         plt.show()
 
     def plot_background_conditions(self):
+        listlist = self._text_to_listlist(self.profileTable.get('1.0',tk.END))
+        data = np.array(listlist)
+
         import matplotlib.pyplot as plt
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Background Conditions')
-        ax[0].plot(self.U, self.z, label='U')
-        ax[0].plot(self.V, self.z, label='V')
-        ax[1].plot(self.T, self.z)
+        #ax[0].plot(self.U, self.z, label='U')
+        #ax[0].plot(self.V, self.z, label='V')
+        #ax[1].plot(self.T, self.z)
+        ax[0].plot(data[:,1], data[:,0], label='U')
+        ax[0].plot(data[:,2], data[:,0], label='V')
+        ax[1].plot(data[:,3], data[:,0])
         ax[0].set_ylabel('height [m]')
         ax[0].set_xlabel('velocity [m/s]')
         ax[1].set_xlabel('temperature [K]')
