@@ -505,6 +505,12 @@ class MainWindow(tk.Frame):
             getattr(self,name).insert(0,self.params[name])
             return False
         else:
+            if name=='nCores':
+                ppn = int(self.PPN.get())
+                if not (ival % ppn == 0):
+                    ival = int(np.round(float(ival) / ppn) * ppn)
+                    getattr(self,name).delete(0,tk.END)
+                    getattr(self,name).insert(0,ival)
             self.params[name] = ival
             self.calc_grid_res()
             return True
