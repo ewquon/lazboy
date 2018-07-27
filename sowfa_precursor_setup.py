@@ -173,12 +173,12 @@ class MainWindow(tk.Frame):
 
     def CheckboxRow(self,master,name,description,variable=None,**kwargs):
         namestr = tk.Label(master, text=name)
-        entry = tk.Checkbutton(master, text=description, variable=variable,
+        entry = tk.Checkbutton(master, text='', variable=variable,
                                **kwargs)
-        #descstr = tk.Label(master, text=description)
+        descstr = tk.Label(master, text=description)
         namestr.grid(row=self.nextrow(), column=0)
         entry.grid(row=self.lastrow, column=1, sticky='ew')
-        #descstr.grid(row=self.lastrow, column=2, sticky=tk.W)
+        descstr.grid(row=self.lastrow, column=2, sticky=tk.W)
         return entry
 
     #==========================================================================
