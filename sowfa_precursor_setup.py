@@ -409,6 +409,8 @@ class MainWindow(tk.Frame):
                                   'TTop',
                                   'Initial potential temperature at top of strong capping inversion (K).',
                                   vcmd=vcmd)
+        self.TgradText = tk.Label(section, text='Tgrad = ')
+        self.TgradText.grid(row=self.nextrow(), column=2)
 
         header = tk.Label(section,
                           text='Background conditions', font='-slant italic')
@@ -558,6 +560,9 @@ class MainWindow(tk.Frame):
         width = float(self.inversionWidth.get())
         Tgrad = float(self.TGradUpper.get())
         wdir = float(self.dir.get())
+
+        Tgradstrong = 100 * (Ttop-Tbot) / width
+        self.TgradText['text'] = 'strong inversion gradient: {:.1f} K/(100 m)'.format(Tgradstrong)
 
         # for plots
         nz = int(self.nz.get())
