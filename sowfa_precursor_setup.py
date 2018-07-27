@@ -16,10 +16,12 @@ try:
     # Python 2.7
     import tkFileDialog as filedialog
     import tkSimpleDialog as simpledialog
+    import tkMessageBox as messagebox
 except ImportError:
     # Python 3
     import tkinter.filedialog as filedialog
     import tkinter.simpledialog as simpledialog
+    import tkinter.messagebox as messagebox
 
 import template as tpl
 
@@ -534,8 +536,8 @@ class MainWindow(tk.Frame):
             self.coresNeeded = int(self.nCores.get())/int(self.PPN.get())
             self.NnodesText['text'] = '{} compute nodes'.format(self.coresNeeded)
 
-            avgCellsPerCore = int(nx*ny*nz/float(self.nCores.get()))
-            self.cellsPerCoreText['text'] = 'average {} cells/core'.format(avgCellsPerCore)
+            self.avgCellsPerCore = int(nx*ny*nz/float(self.nCores.get()))
+            self.cellsPerCoreText['text'] = 'average {} cells/core'.format(self.avgCellsPerCore)
 
 
     def update_ideal_profile(self,name=None):
@@ -823,15 +825,15 @@ class MainWindow(tk.Frame):
                     initialdir=os.getcwd(),
                     title='Specify new simulation directory',
                 )
-        casename = os.path.split(dpath)[-1]
-        self.params['casename'] = simpledialog.askstring(
-                                        title='runscript',
-                                        prompt='PBS job name',
-                                        initialvalue=casename
-                                    )
 
         """Create run directory structure here"""
         if not dpath == '':
+            casename = os.path.split(dpath)[-1]
+            self.params['casename'] = simpledialog.askstring(
+                                            title='runscript',
+                                            prompt='PBS job name',
+                                            initialvalue=casename
+                                        )
             srcdir = os.path.join(tpl.mypath, 'simulation_templates')
             print('Generating case files in '+dpath)
             print('  from files in '+srcdir)
@@ -915,9 +917,20 @@ class MainWindow(tk.Frame):
     #
     # sanity check routines
     #
+    def _alert(self,msg):
+        messagebox.showwarning('Sanity check!',msg)
+
 
     def check_sanity(self):
         print('TODO: add sanity checks!')
+
+        if (self.velocityInitTypeVar.get() == 'table') \
+                and (not self.sourceTypeVar.get() == 'column'):
+            self._alert('Need to specified velocity table for initialization')
+
+        if (self.avgCellsPerCore > 80000):
+            self._alert(str(self.avgCellsPerCore)+' cells/core... simulation will be slow')
+
 
     #==========================================================================
     #
