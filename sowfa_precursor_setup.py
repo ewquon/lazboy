@@ -779,7 +779,7 @@ class MainWindow(tk.Frame):
                     #listlist = self._text_to_listlist(text)
                     #if DEBUG: print(' reconstructed list of lists: {}'.format(listlist))
                     #self.params[name] = listlist
-                    self.params[name] = text
+                    self.params[name] = text.strip()
                 else:
                     # need to get from control variable instead of widget
                     if DEBUG:
