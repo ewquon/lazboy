@@ -121,6 +121,7 @@ class MainWindow(tk.Frame):
         #self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
         #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
         #self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
+        self.idealProfileVar = tk.IntVar(self.master, value=0)
  
         """surface controls"""
         self.surfaceBCTypeVar = tk.StringVar(self.master, value='fixed flux')
@@ -363,7 +364,7 @@ class MainWindow(tk.Frame):
                                                    args=['geostrophic','log','table'],
                                                    variable=self.velocityInitTypeVar,
                                                    command=self.update_velocity_init)
-        vcmd = self.register(self.update_profiles)
+        vcmd = self.register(self.update_ideal_profile)
         self.U0Mag = self.EntryRow(section,
                                    'U0Mag',
                                    'Initial condition for wind speed (m/s).',
@@ -416,7 +417,10 @@ class MainWindow(tk.Frame):
                                              args=['single height','column'],
                                              variable=self.sourceTypeVar,
                                              command=self.update_source_type)
-        vcmd = self.register(self.update_profiles)
+        self.idealProfile = self.CheckboxRow(section,'idealProfile',
+                                             'Compute velocity profile from U0Mag, dir, windHeight, alpha, and veer',
+                                             variable=self.idealProfileVar)
+        vcmd = self.register(self.update_ideal_profile)
         self.alpha = self.EntryRow(section, 'alpha', 'Shear exponent',
                                    vcmd=vcmd)
         self.veer = self.EntryRow(section, 'veer', 'Veer over windHeight (deg)',
@@ -534,13 +538,8 @@ class MainWindow(tk.Frame):
             self.cellsPerCoreText['text'] = 'average {} cells/core'.format(avgCellsPerCore)
 
 
-    def update_profiles(self,name=None):
-        self.profileTable.delete('1.0', tk.END)
-        self.profileTable.insert(tk.END, '//   z       U       V       T\n')
-        nz = int(self.nz.get())
-        self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
-        zref = float(self.windHeight.get())
-        Uref = float(self.U0Mag.get())
+    def update_ideal_profile(self,name=None):
+        # update direction name
         wdir = float(self.dir.get())
         if (wdir >= 337.5) and (wdir < 22.5):
             self.wdirname = 'north'
@@ -560,34 +559,51 @@ class MainWindow(tk.Frame):
             self.wdirname = 'northwest'
         else:
             raise ValueError('Unexpected wind direction: {:f}'.format(wdir))
-        wdir = 270. - wdir
-        if wdir < 0: wdir += 360.
-        wdir *= np.pi/180.
-        alpha = float(self.alpha.get())
-        veer = float(self.veer.get()) * np.pi/180.
-        zinv = float(self.zInversion.get())
-        self.WS = Uref * (self.z / zref)**alpha
-        self.WD = wdir + veer/zref * (self.z - zref)
-        freeatm = self.z >= zinv
-        WDtop = self.WD[freeatm][0]
-        self.WD[freeatm] = WDtop
-        self.U = self.WS * np.cos(self.WD)
-        self.V = self.WS * np.sin(self.WD)
-        Tbot = float(self.TBottom.get())
-        Ttop = float(self.TTop.get())
-        width = float(self.inversionWidth.get())
-        Tgrad = float(self.TGradUpper.get())
-        self.T = Tbot * np.ones(self.U.shape)
-        zbot = zinv - width/2
-        ztop = zinv + width/2
-        strong_layer = (self.z >= zbot) & (self.z <= ztop)
-        weak_layer = (self.z > ztop)
-        self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
-        self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
-        for zi,Ui,Vi,Ti in zip(self.z,self.U,self.V,self.T):
-            rowdata = '\t({}  {}  {}  {})\n'.format(zi,Ui,Vi,Ti)
-            self.profileTable.insert(tk.END, rowdata)
+
+        if self.idealProfileVar.get():
+            # calculate ideal profile
+            zref = float(self.windHeight.get())
+            Uref = float(self.U0Mag.get())
+            alpha = float(self.alpha.get())
+            veer = float(self.veer.get()) * np.pi/180.
+            zinv = float(self.zInversion.get())
+            Tbot = float(self.TBottom.get())
+            Ttop = float(self.TTop.get())
+            width = float(self.inversionWidth.get())
+            Tgrad = float(self.TGradUpper.get())
+
+            nz = int(self.nz.get())
+            self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
+            wdir = 270. - wdir
+            if wdir < 0: wdir += 360.
+            wdir *= np.pi/180.
+            self.WS = Uref * (self.z / zref)**alpha
+            self.WD = wdir + veer/zref * (self.z - zref)
+            freeatm = self.z >= zinv
+            self.WD[freeatm] = self.WD[freeatm][0]
+            self.U = self.WS * np.cos(self.WD)
+            self.V = self.WS * np.sin(self.WD)
+
+            zbot = zinv - width/2
+            ztop = zinv + width/2
+            strong_layer = (self.z >= zbot) & (self.z <= ztop)
+            weak_layer = (self.z > ztop)
+            self.T = Tbot * np.ones(self.U.shape)
+            self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
+            self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
+
+            self._update_profile_text()
+
         return True # so the widget isn't disabled
+
+
+    def _update_profile_text(self):
+        self.profileTable.delete('1.0', tk.END)
+        #self.profileTable.insert(tk.END, '//   z       U       V       T\n')
+        for zi,Ui,Vi,Ti in zip(self.z,self.U,self.V,self.T):
+            rowdata = '({}  {}  {}  {})\n'.format(zi,Ui,Vi,Ti)
+            self.profileTable.insert(tk.END, rowdata)
+
 
     def update_decomp(self,decompType):
         if decompType=='simple':
@@ -615,7 +631,7 @@ class MainWindow(tk.Frame):
             self.profileTable.config(state='normal',fg='black')
         else:
             raise ValueError('Unexpected source type: '+sourceType)
-        self.update_profiles()
+        self.update_ideal_profile()
 
 
     def update_surface_bc(self,name=None):
@@ -666,6 +682,29 @@ class MainWindow(tk.Frame):
     # actions
     #
 
+    def _text_to_listlist(self,text):
+        """Parse
+        (0.0 0.0 0.0 273.121917725)
+        (5.0 1.82671529027 1.98969371553 282.524156211)
+        (10.0 2.52983624172 2.77228242751 283.156504284)
+        (15.0 3.01282071998 3.35521702288 283.64108812)
+        ...
+        into a list of lists, for conversion to 2-D np.ndarray.
+        """
+        lines = text.split('\n')
+        listlist = [ [ float(val) for val in line.strip().strip('()').split() ] for line in lines ]
+        return listlist
+
+    def _listlist_to_profiles(self,listlist):
+        if (listlist is not None) and (len(listlist) > 1):
+            data = np.array(listlist)
+            self.z = data[:,0]
+            self.U = data[:,1]
+            self.V = data[:,2]
+            self.T = data[:,3]
+            self._update_profile_text(self)
+
+
     def restore_defaults(self):
         """It's kind of a PITA, but binding tk.StringVar to the widgets
         and trying to udpate it in the validate command breaks the
@@ -688,10 +727,15 @@ class MainWindow(tk.Frame):
                 print('Note: widget "'+name+'" does not exist')
             else:
                 widget_class = widget.winfo_class()
-                if widget_class in ['Entry','Text']:
+                if widget_class == 'Entry':
                     if DEBUG: print('Setting entry "'+name+'"')
                     widget.delete(0, tk.END)
                     widget.insert(0, str(val))
+                elif widget_class == 'Text':
+                    if DEBUG:
+                        print('Updating profiles and setting "'+name+'"')
+                        print('  list of lists: '+str(val))
+                    self._listlist_to_profiles(val)
                 else:
                     # we have a control variable instead of widget
                     if DEBUG: print('Setting variable for "{}" ({})'.format(name,widget_class))
@@ -700,8 +744,8 @@ class MainWindow(tk.Frame):
         
         """update active text widgets"""
         self.calc_grid_res()
-        #self.update_profiles()
-        self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
+        #self.update_ideal_profile()
+        self.update_source_type(self.sourceTypeVar.get()) # calls update_ideal_profile()
         self.update_decomp(self.decompTypeVar.get())
         self.update_coriolis()
         self.update_velocity_init(self.velocityInitTypeVar.get())
@@ -710,6 +754,7 @@ class MainWindow(tk.Frame):
 
 
     def get_all_params(self):
+        # Called before saving template and generating case files
         for name, val in self.params.items():
             dtype = type(val)
             try:
@@ -720,23 +765,28 @@ class MainWindow(tk.Frame):
                 if widget.winfo_class() == 'Entry':
                     if DEBUG: print('Updated variable "{}" ({}) from Entry'.format(name,str(dtype)))
                     wvar = widget.get()
+                    if dtype is list:
+                        dtype = type(val[0])
+                        vals = wvar.strip('[]').split(',')
+                        vals = [ dtype(val) for val in vals ]
+                        if DEBUG: print('  reconstructed list: {}'.format(vals))
+                        self.params[name] = vals
+                    else:
+                        self.params[name] = dtype(wvar)
+                elif widget.winfo_class() == 'Text':
+                    if DEBUG: print('Updated variable "{}" ({}) from Text'.format(name,str(dtype)))
+                    text = widget.get('1.0',tk.END)
+                    #listlist = self._text_to_listlist(text)
+                    #if DEBUG: print(' reconstructed list of lists: {}'.format(listlist))
+                    #self.params[name] = listlist
+                    self.params[name] = text
                 else:
-                    # we have a control variable instead of widget
+                    # need to get from control variable instead of widget
                     if DEBUG:
                         print('Updated variable "{}" ({}) from {}'.format(
                             name, str(dtype), widget.winfo_class()) )
                     wvar = getattr(self, name+'Var').get()
-
-                if dtype is list:
-                    dtype = type(val[0])
-                    vals = wvar.strip('[]').split(',')
-                    vals = [ dtype(val) for val in vals ]
-                    self.params[name] = vals
-                    if DEBUG: print('  reconstructed list: {}'.format(vals))
-                else:
                     self.params[name] = dtype(wvar)
-
-        self.params['profileTable'] = self.profileTable.get('1.0', tk.END)
 
 
     def save_template(self,fpath=None):
@@ -747,12 +797,18 @@ class MainWindow(tk.Frame):
                         title='Save precursor configuration',
                         filetypes=(('yaml files','*.yaml'),('all files','*,*')),
                     )
+        params_copy = self.params.copy()
 
+        # clean up variables for output as needed
+        listlist = self._text_to_listlist(params_copy['profileTable'])
+        if DEBUG: print(' reconstructed list of lists: {}'.format(listlist))
+        params_copy['profileTable'] = listlist
+
+        # now write it out
         if not fpath == '':
-            if DEBUG: print(tpl.yaml_template.format(**self.params))
             with open(fpath,'w') as f:
-                f.write(tpl.yaml_template.format(**self.params))
-            print('Wrote out '+fpath)
+                f.write(tpl.yaml_template.format(**params_copy))
+        print('Wrote out '+fpath)
 
 
     def generate(self):
@@ -770,7 +826,7 @@ class MainWindow(tk.Frame):
         casename = os.path.split(dpath)[-1]
         self.params['casename'] = simpledialog.askstring(
                                         title='runscript',
-                                        prompt='New case name',
+                                        prompt='PBS job name',
                                         initialvalue=casename
                                     )
 

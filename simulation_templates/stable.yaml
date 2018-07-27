@@ -40,8 +40,10 @@ inversionWidth: 100.0  # Vertical width of the intial strong capping inversion (
 TBottom: 300.0  # Initial potential temperature at bottom of strong capping inversion (K).
 TTop: 305.0  # Initial potential temperature at top of strong capping inversion (K).
 
+idealProfile: True
 alpha: 0.4  # Shear exponent.
 veer: 0.0  # Veer (deg).
+profileTable:
 
 
 # surface controls
