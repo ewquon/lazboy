@@ -1,7 +1,7 @@
 # lazboy
 A cushy set of GUI-based tools to help with setting up and running SOWFA (Simulator fOr Wind Farm Applications: https://github.com/NREL/SOWFA) simulations. 
 
-These scripts are written to be 
+These scripts depend on the Tkinter package for the GUI and are written with both Python 2 and 3 compatibility in mind. 
 
 The scripts should be from the command line in a terminal with X11 forwarding (either locally or remotely), or from a virtual desktop environment (e.g., FastX on Peregrine: https://www.nrel.gov/hpc/software-fastx.html):
 ```
