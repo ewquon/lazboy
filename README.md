@@ -35,3 +35,5 @@ template.
 * Sanity checks are performed on-the-fly when you interact with some of the
   configuration options, and also when you click "Generate case files!". 
 
+![SOWFA precursor setup screenshot](https://raw.githubusercontent.com/ewquon/lazboy/master/screenshot.png)
+
