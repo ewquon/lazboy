@@ -855,6 +855,7 @@ class MainWindow(tk.Frame):
 
         """Create run directory structure here"""
         if not dpath == '':
+            os.makedirs(dpath)
             casename = os.path.split(dpath)[-1]
             self.params['casename'] = simpledialog.askstring(
                                             title='runscript',
@@ -939,6 +940,8 @@ class MainWindow(tk.Frame):
             with open(fpath,'w') as f:
                 f.write(tpl.runscript_solve_template.format(**self.params))
             print('Wrote out '+fpath)
+
+        print('Done generating case directory in '+dpath)
 
     #==========================================================================
     #
