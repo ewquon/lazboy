@@ -37,3 +37,8 @@ template.
 
 ![SOWFA precursor setup screenshot](https://raw.githubusercontent.com/ewquon/lazboy/master/screenshot.png)
 
+### quirks
+* In linux, the GUI rendering looks super old-school. However the functionality
+should be mostly the same for Mac/Windows/Linux. 
+* In linux, the "Specify new simulation directory" box doesn't have a make-new-
+directory button, so instead enter the name you want and click "OK" twice.
