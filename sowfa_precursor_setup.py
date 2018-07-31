@@ -706,6 +706,11 @@ class MainWindow(tk.Frame):
     # actions
     #
 
+    def _text_to_list(self,line,dtype=float):
+        """Parse "[1 2 3]" into a list."""
+        L = [ dtype(val) for val in line.strip().strip('[]').split(',') ]
+        return L
+
     def _text_to_listlist(self,text):
         """Parse
         (0.0 0.0 0.0 273.121917725)
@@ -792,8 +797,7 @@ class MainWindow(tk.Frame):
                     wvar = widget.get()
                     if dtype is list:
                         dtype = type(val[0])
-                        vals = wvar.strip('[]').split(',')
-                        vals = [ dtype(val) for val in vals ]
+                        vals = self._text_to_list(wvar,dtype=dtype)
                         if DEBUG: print('  reconstructed list: {}'.format(vals))
                         self.params[name] = vals
                     else:
@@ -953,6 +957,15 @@ class MainWindow(tk.Frame):
 
         if (self.avgCellsPerCore > 80000):
             self._alert(str(self.avgCellsPerCore)+' cells/core... simulation will be slow')
+        elif (self.avgCellsPerCore < 20000):
+            self._alert(str(self.avgCellsPerCore)+' cells/core... maybe you need less cores')
+
+        if self.decompTypeVar.get() == 'simple':
+            decomp = self._text_to_list(self.decompOrder.get(), dtype=int)
+            decompcores = int(np.prod(decomp))
+            if not decompcores == int(self.nCores.get()):
+                self._alert('"Simple" decomposition for '+str(decompcores)+
+                            'cores, but '+self.nCores.get()+' cores expected')
 
 
     #==========================================================================
