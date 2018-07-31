@@ -650,9 +650,15 @@ class MainWindow(tk.Frame):
         if sourceType=='single height':
             self.profileTable.config(state='disabled',fg='light grey')
             self.plot_bkgnd_button.config(state='disabled')
+            self.idealProfile.config(state='disabled')
+            self.alpha.config(state='disabled')
+            self.veer.config(state='disabled')
         elif sourceType=='column':
             self.profileTable.config(state='normal',fg='black')
             self.plot_bkgnd_button.config(state='normal')
+            self.idealProfile.config(state='normal')
+            self.alpha.config(state='normal')
+            self.veer.config(state='normal')
         else:
             raise ValueError('Unexpected source type: '+sourceType)
         self.update_ideal_profile()
