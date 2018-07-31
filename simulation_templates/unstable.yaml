@@ -40,6 +40,7 @@ inversionWidth: 100.0  # Vertical width of the intial strong capping inversion (
 TBottom: 300.0  # Initial potential temperature at bottom of strong capping inversion (K).
 TTop: 308.0  # Initial potential temperature at top of strong capping inversion (K).
 
+sourceType: 'single height'  # 'single height' or 'column'
 idealProfile: True
 alpha: 0.1  # Shear exponent.
 veer: 0.0  # Veer (deg).

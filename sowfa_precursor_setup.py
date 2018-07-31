@@ -732,7 +732,7 @@ class MainWindow(tk.Frame):
             self.U = data[:,1]
             self.V = data[:,2]
             self.T = data[:,3]
-            self._update_profile_text(self)
+            self._update_profile_text()
 
 
     def restore_defaults(self):
@@ -899,16 +899,18 @@ class MainWindow(tk.Frame):
                     f.write('sourceHeightsMomentum\n(\n\t')
                     f.write('\n\t'.join([str(z) for z in self.z]))
                     f.write('\n);\n\n')
-                    f.write('sourceTableMomentumX\n(\n')
                     xmom_sources = ' '.join([str(u) for u in self.U])
+                    f.write('sourceTableMomentumX\n(\n')
                     f.write('\t(0.0 '+xmom_sources+')\n')
                     f.write('\t(90000.0 '+xmom_sources+')\n')
                     f.write(');\n\n')
                     ymom_sources = ' '.join([str(v) for v in self.V])
+                    f.write('sourceTableMomentumY\n(\n')
                     f.write('\t(0.0 '+ymom_sources+')\n')
                     f.write('\t(90000.0 '+ymom_sources+')\n')
                     f.write(');\n\n')
                     zmom_sources = ' '.join(len(self.U.shape)*['0.0'])
+                    f.write('sourceTableMomentumZ\n(\n')
                     f.write('\t(0.0 '+zmom_sources+')\n')
                     f.write('\t(90000.0 '+zmom_sources+')\n')
                     f.write(');\n\n')
