@@ -49,7 +49,10 @@ sampling_files = [
         ]
 
 
-#class MainWindow(object):
+#==============================================================================
+#
+# Definition of GUI and callback functions
+#
 class MainWindow(tk.Frame):
     """GUI for configuring the setUp file and generating a SOWFA
     precursor input deck
@@ -104,9 +107,10 @@ class MainWindow(tk.Frame):
 
             
     def init_vars(self):
-        # Need to initialize some variables before we can create the widgets
-        # However, most values associated with Entry boxes will be created
-        # on the fly.
+        """Need to initialize some variables before we can create the
+        widgets. However, most values associated with Entry boxes will
+        be created on the fly.
+        """
         self.lastrow = -1
 
         """decomposition controls"""
@@ -131,10 +135,9 @@ class MainWindow(tk.Frame):
         #self.kappa = 0.4  # von Karman constant.
  
 
-    #==========================================================================
-    #
+    #--------------------------------------------------------------------------
     # TK wrappers
-    #
+    #--------------------------------------------------------------------------
 
     def nextrow(self):
         self.lastrow += 1
@@ -181,10 +184,9 @@ class MainWindow(tk.Frame):
         descstr.grid(row=self.lastrow, column=2, sticky=tk.W)
         return entry
 
-    #==========================================================================
-    #
+    #--------------------------------------------------------------------------
     # GUI setup
-    #
+    #--------------------------------------------------------------------------
 
     def init_window(self):
         self.top = tk.Canvas(self.master)
@@ -481,10 +483,9 @@ class MainWindow(tk.Frame):
 #                                font='-weight bold')
 #        section.grid(row=self.nextrow(), columnspan=4, pady=5, sticky=tk.W)
 
-    #==========================================================================
-    #
-    # validation routines
-    #
+    #--------------------------------------------------------------------------
+    # validation routines (callback functions)
+    #--------------------------------------------------------------------------
 
     def update_grid_ext(self,name):
         newval = getattr(self,name).get()
@@ -712,10 +713,9 @@ class MainWindow(tk.Frame):
         print('temperatureInitType = '+initType)
 
 
-    #==========================================================================
-    #
+    #--------------------------------------------------------------------------
     # actions
-    #
+    #--------------------------------------------------------------------------
 
     def _text_to_list(self,line,dtype=float):
         """Parse "[1 2 3]" into a list."""
@@ -795,7 +795,9 @@ class MainWindow(tk.Frame):
 
 
     def get_all_params(self):
-        # Called before saving template and generating case files
+        """Called before saving template and generating case files to
+        update the 'params' dictionary.
+        """
         for name, val in self.params.items():
             dtype = type(val)
             try:
@@ -830,6 +832,9 @@ class MainWindow(tk.Frame):
 
 
     def save_template(self,fpath=None):
+        """Save yaml file which should completely describe the
+        simulation
+        """
         if fpath is None:
             self.get_all_params()
             fpath = filedialog.asksaveasfilename(
@@ -852,6 +857,9 @@ class MainWindow(tk.Frame):
 
 
     def generate(self):
+        """Create the OpenFOAM simulation structure. Called when user
+        clicks the 'Generate case files!' button.
+        """
         self.get_all_params()
         for key,val in self.config.items():
             self.params[key] = val
@@ -962,10 +970,11 @@ class MainWindow(tk.Frame):
 
         print('Done generating case directory in '+dpath)
 
-    #==========================================================================
-    #
+
+    #--------------------------------------------------------------------------
     # sanity check routines
-    #
+    #--------------------------------------------------------------------------
+
     def _alert(self,msg):
         messagebox.showwarning('Sanity check!',msg)
 
@@ -990,10 +999,10 @@ class MainWindow(tk.Frame):
                             'cores, but '+self.nCores.get()+' cores expected')
 
 
-    #==========================================================================
-    #
+    #--------------------------------------------------------------------------
     # visualization routines
-    #
+    #--------------------------------------------------------------------------
+
     # Note: importing matplotlib at the beginning causes a crash
 
     def plot_initial_conditions(self):
@@ -1042,21 +1051,15 @@ class MainWindow(tk.Frame):
         plt.show()
 
 
-#------------------------------------------------------------------------------
-# set up scrolling
-
-#def on_configure(event):
-#    # update scrollregion after starting 'mainloop'
-#    # when all widgets are in canvas
-#    print('update scrollregion')
-#    canvas.configure(scrollregion=canvas.bbox('all'))
-
-#------------------------------------------------------------------------------
+#==============================================================================
+#
+# Code execution begins here
+#
 
 root = tk.Tk()  # the root window
 #root.geometry('800x600')
 
-# create instance of window
+# create instance of GUI
 my_gui = MainWindow(root)
 root.title('SOWFA Precursor Setup')
 

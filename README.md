@@ -12,6 +12,8 @@ FastX on Peregrine: https://www.nrel.gov/hpc/software-fastx.html):
 ```
 python /path/to/lazboy/sowfa_precursor_setup.py
 ```
+If the GUI is laggy and you're running remotely, then FastX is probably your
+best option.
 
 ## Getting started: sowfa_precursor_setup
 * FIRST RUN: You will be prompted for your email and primary HPC allocation
@@ -40,5 +42,10 @@ template.
 ### quirks
 * In linux, the GUI rendering looks super old-school. However the functionality
 should be mostly the same for Mac/Windows/Linux. 
+* Scrolling only works if you move your mouse over the scrollbar. 
 * In linux, the "Specify new simulation directory" box doesn't have a make-new-
 directory button, so instead enter the name you want and click "OK" twice.
+
+If something is behaving unexpectedly, check the terminal for some (hopefully)
+useful verbose degugging information...
+
