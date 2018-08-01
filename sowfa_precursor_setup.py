@@ -536,14 +536,13 @@ class MainWindow(tk.Frame):
         except ValueError:
             pass
         else:
-            dx = (x1-x0) / nx
-            dy = (y1-y0) / ny
-            dz = (z1-z0) / nz
+            self.dx = (x1-x0) / nx
+            self.dy = (y1-y0) / ny
+            self.dz = (z1-z0) / nz
             self.zsurf = z0
-            self.dz = dz
-            self.dxText['text'] = 'dx = {} m'.format(dx)
-            self.dyText['text'] = 'dy = {} m'.format(dy)
-            self.dzText['text'] = 'dz = {} m'.format(dz)
+            self.dxText['text'] = 'dx = {} m'.format(self.dx)
+            self.dyText['text'] = 'dy = {} m'.format(self.dy)
+            self.dzText['text'] = 'dz = {} m'.format(self.dz)
             self.NcellsText['text'] = 'Ncells = {:g}'.format(nx*ny*nz)
 
             self.coresNeeded = int(self.nCores.get())/int(self.PPN.get())
@@ -969,13 +968,8 @@ class MainWindow(tk.Frame):
     def _alert(self,msg):
         messagebox.showwarning('Sanity check!',msg)
 
-
     def check_sanity(self):
-        print('TODO: add sanity checks!')
-
-        if (self.velocityInitTypeVar.get() == 'table') \
-                and (not self.sourceTypeVar.get() == 'column'):
-            self._alert('Need to specified velocity table for initialization')
+        """TODO: add sanity checks go here"""
 
         if (self.avgCellsPerCore > 80000):
             self._alert(str(self.avgCellsPerCore)+' cells/core... simulation will be slow')
@@ -988,6 +982,13 @@ class MainWindow(tk.Frame):
             if not decompcores == int(self.nCores.get()):
                 self._alert('"Simple" decomposition for '+str(decompcores)+
                             'cores, but '+self.nCores.get()+' cores expected')
+
+        if not (self.dx == self.dy == self.dz):
+            self._alert('Did you mean to specify different spacings in each direction?')
+
+        if (self.velocityInitTypeVar.get() == 'table') \
+                and (not self.sourceTypeVar.get() == 'column'):
+            self._alert('Need specified profile table for initialization')
 
 
     #==========================================================================
