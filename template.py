@@ -151,7 +151,7 @@ decompOrder          ({decompOrder[0]:d} {decompOrder[1]:d} {decompOrder[2]:d});
 
 
 // Planar averaging and source term statistics options.
-statisticsOn         {statisticsOn};                        // Gather planar-averaged flow statistics.
+statisticsOn         {statisticsOn:s};                        // Gather planar-averaged flow statistics.
 statisticsFrequency  {statisticsFrequency:d};                           // Frequency in time steps of statistics gathering.
 
 

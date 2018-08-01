@@ -878,10 +878,16 @@ class MainWindow(tk.Frame):
             print('  from files in '+srcdir)
             self.save_template(fpath=os.path.join(dpath,'setup.yaml'))
 
+            # fix for booleans (OpenFOAM expects lowercase)
+            params_copy = self.params.copy()
+            for key,val in params_copy.items():
+                if isinstance(val, bool):
+                    params_copy[key] = str(val).lower()
+
             # write setUp file
             fpath = os.path.join(dpath,'setUp')
             with open(fpath,'w') as f:
-                f.write(tpl.setUp_template.format(**self.params))
+                f.write(tpl.setUp_template.format(**params_copy))
             print('Wrote out '+fpath)
 
             # initial conditions
