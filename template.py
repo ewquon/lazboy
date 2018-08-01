@@ -369,6 +369,7 @@ else
 fi
 """
 
+
 runscript_solve_template = """#!/bin/bash
 #PBS -N {casename:s}
 #PBS -l walltime=48:00:00
@@ -397,6 +398,8 @@ cp system/controlDict.$runNumber system/controlDict
 echo "Starting OpenFOAM job at: " $(date)
 echo "using " $cores " cores"
 
+echo "$PBS_O_WORKDIR started at `date`" >> $HOME/pbsjobs.log
+
 # Run the flow field initializer (parallel)
 if [ $runNumber -eq 1 ] 
    then
@@ -408,6 +411,7 @@ mpirun -np $cores $solver -parallel > log.$runNumber.$solver 2>&1
 
 echo "Ending OpenFOAM job at: " $(date)
 """
+
 
 setFieldsABLDict_template = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
