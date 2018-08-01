@@ -366,7 +366,7 @@ class MainWindow(tk.Frame):
                                                    args=['geostrophic','log','table'],
                                                    variable=self.velocityInitTypeVar,
                                                    command=self.update_velocity_init)
-        vcmd = self.register(self.update_ideal_profile)
+        vcmd = self.register(self.update_profiles)
         self.U0Mag = self.EntryRow(section,
                                    'U0Mag',
                                    'Initial condition for wind speed (m/s).',
@@ -428,7 +428,7 @@ class MainWindow(tk.Frame):
         self.idealProfile = self.CheckboxRow(section,'idealProfile',
                                              'Compute velocity profile from U0Mag, dir, windHeight, alpha, and veer',
                                              variable=self.idealProfileVar)
-        vcmd = self.register(self.update_ideal_profile)
+        vcmd = self.register(self.update_profiles)
         self.alpha = self.EntryRow(section, 'alpha', 'Shear exponent',
                                    vcmd=vcmd)
         self.veer = self.EntryRow(section, 'veer', 'Veer over windHeight (deg)',
@@ -553,7 +553,12 @@ class MainWindow(tk.Frame):
             self.cellsPerCoreText['text'] = 'average {} cells/core'.format(self.avgCellsPerCore)
 
 
-    def update_ideal_profile(self,name=None):
+    def update_profiles(self,name=None):
+        """Update basic atmospheric properties, including the ideal
+        temperature profile for ICs. If an ideal profile is specified,
+        then horizontal wind components described by shear and veer
+        parameters is also calculated.
+        """
         zinv = float(self.zInversion.get())
         Tbot = float(self.TBottom.get())
         Ttop = float(self.TTop.get())
@@ -661,7 +666,7 @@ class MainWindow(tk.Frame):
             self.veer.config(state='normal')
         else:
             raise ValueError('Unexpected source type: '+sourceType)
-        self.update_ideal_profile()
+        self.update_profiles()
 
 
     def update_surface_bc(self,name=None):
@@ -780,8 +785,8 @@ class MainWindow(tk.Frame):
         
         """update active text widgets"""
         self.calc_grid_res()
-        #self.update_ideal_profile()
-        self.update_source_type(self.sourceTypeVar.get()) # calls update_ideal_profile()
+        #self.update_profiles()
+        self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
         self.update_decomp(self.decompTypeVar.get())
         self.update_coriolis()
         self.update_velocity_init(self.velocityInitTypeVar.get())
@@ -915,7 +920,7 @@ class MainWindow(tk.Frame):
                     f.write('\t(0.0 '+ymom_sources+')\n')
                     f.write('\t(90000.0 '+ymom_sources+')\n')
                     f.write(');\n\n')
-                    zmom_sources = ' '.join(len(self.U.shape)*['0.0'])
+                    zmom_sources = ' '.join(len(self.z)*['0.0'])
                     f.write('sourceTableMomentumZ\n(\n')
                     f.write('\t(0.0 '+zmom_sources+')\n')
                     f.write('\t(90000.0 '+zmom_sources+')\n')

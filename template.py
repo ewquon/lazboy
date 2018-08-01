@@ -78,6 +78,7 @@ inversionWidth: {inversionWidth:g}  # Vertical width of the intial strong cappin
 TBottom: {TBottom:f}  # Initial potential temperature at bottom of strong capping inversion (K).
 TTop: {TTop:f}  # Initial potential temperature at top of strong capping inversion (K).
 
+sourceType: {sourceType:s}
 idealProfile: {idealProfile}
 alpha: {alpha:f}  # Shear exponent.
 veer: {veer:f}  # Veer (deg).
