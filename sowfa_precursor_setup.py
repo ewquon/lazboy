@@ -1043,6 +1043,7 @@ class MainWindow(tk.Frame):
             U0 = np.sqrt(self.U**2 + self.V**2)
 
         import matplotlib.pyplot as plt
+        plt.style.use('seaborn-darkgrid')
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Initial Conditions')
         ax[0].plot(U0, self.z)
@@ -1057,6 +1058,7 @@ class MainWindow(tk.Frame):
         data = np.array(listlist)
 
         import matplotlib.pyplot as plt
+        plt.style.use('seaborn-darkgrid')
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Background Conditions')
         #ax[0].plot(self.U, self.z, label='U')
