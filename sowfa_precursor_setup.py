@@ -566,8 +566,8 @@ class MainWindow(tk.Frame):
         Tgrad = float(self.TGradUpper.get())
         wdir = float(self.dir.get())
 
-        Tgradstrong = 100 * (Ttop-Tbot) / width
-        self.TgradText['text'] = 'strong inversion gradient: {:.1f} K/(100 m)'.format(Tgradstrong)
+        self.Tgrad_strong = 100 * (Ttop-Tbot) / width
+        self.TgradText['text'] = 'strong inversion gradient: {:.1f} K/(100 m)'.format(self.Tgrad_strong)
 
         # for plots
         nz = int(self.nz.get())
@@ -675,22 +675,24 @@ class MainWindow(tk.Frame):
         rhoref = pref / R / float(self.TRef.get())
         Cp = 3.5*R # gamma/(gamma-1) * R
         qwall = float(self.qwall.get())
-        heatingRate = float(self.heatingRate.get())
+        self.heating = float(self.heatingRate.get())
 
-        flux = qwall * rhoref * Cp
+        self.flux = qwall * rhoref * Cp
         fluxdesc = ''
-        if flux < 0:
+        if self.flux < 0:
             fluxdesc = 'HEATING'
-        elif flux > 0:
+        elif self.flux > 0:
             fluxdesc = 'COOLING'
-        self.fluxInfoText['text'] = '= {} W/m^2 {}'.format(np.abs(flux),fluxdesc)
+        self.fluxInfoText['text'] = '= {} W/m^2 {}'.format(np.abs(self.flux),
+                                                           fluxdesc)
 
         heatingdesc = ''
-        if heatingRate > 0:
+        if self.heating > 0:
             heatingdesc = 'HEATING'
-        elif heatingRate < 0:
+        elif self.heating < 0:
             heatingdesc = 'COOLING'
-        self.heatingInfoText['text'] = '= {} K/hr {}'.format(3600*np.abs(heatingRate),heatingdesc)
+        self.heatingInfoText['text'] = '= {:.4f} K/hr {}'.format(3600*np.abs(self.heating),
+                                                             heatingdesc)
 
         surfaceBCType = self.surfaceBCTypeVar.get()
         if surfaceBCType == 'fixed flux':
@@ -980,6 +982,7 @@ class MainWindow(tk.Frame):
     def check_sanity(self):
         """TODO: add sanity checks go here"""
 
+        # Check decomposition
         if (self.avgCellsPerCore > 80000):
             self._alert(str(self.avgCellsPerCore)+' cells/core... simulation will be slow')
         elif (self.avgCellsPerCore < 20000):
@@ -992,12 +995,29 @@ class MainWindow(tk.Frame):
                 self._alert('"Simple" decomposition for '+str(decompcores)+
                             'cores, but '+self.nCores.get()+' cores expected')
 
+        # Check domain
         if not (self.dx == self.dy == self.dz):
             self._alert('Did you mean to specify different spacings in each direction?')
 
+        # Check IC/BCs
         if (self.velocityInitTypeVar.get() == 'table') \
                 and (not self.sourceTypeVar.get() == 'column'):
             self._alert('Need specified profile table for initialization')
+
+        if (self.surfaceBCTypeVar.get() == 'fixed heating rate') \
+                and (self.heating > 0):
+            # heat flux INTO domain, with specified dT/dt
+            self._alert('Fixed heating rate BC specified with heating, consider using fixed flux')
+        elif (self.surfaceBCTypeVar.get() == 'fixed flux') \
+                and (self.flux > 0):
+            # heat flux OUT of domain (cooling)
+            self._alert('Fixed flux BC specified with cooling, consider using fixed heating rate')
+        elif (self.surfaceBCTypeVar.get() == 'fixed flux') \
+                and (self.Tgrad_strong < 5):
+            # heat flux INTO domain, with fixed flux but weak inversion
+            self._alert('Convective conditions without a strong inversion layer,'+
+                        ' {} K/(100 m) specified'.format(self.Tgrad_strong))
+
 
 
     #--------------------------------------------------------------------------
