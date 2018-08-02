@@ -43,6 +43,9 @@ template.
 * In linux, the GUI rendering looks super old-school. However the functionality
 should be mostly the same for Mac/Windows/Linux. 
 * Scrolling only works if you move your mouse over the scrollbar. 
+* If the GUI incorrectly detects the height of your screen (e.g., if you have a
+horizontal + vertical monitor setup), then click the maximize/zoom button and
+resize your window accordingly.
 * In linux, the "Specify new simulation directory" box doesn't have a make-new-
 directory button, so instead enter the name you want and click "OK" twice.
 
