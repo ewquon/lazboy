@@ -429,7 +429,8 @@ class MainWindow(tk.Frame):
                                              command=self.update_source_type)
         self.idealProfile = self.CheckboxRow(section,'idealProfile',
                                              'Compute velocity profile from U0Mag, dir, windHeight, alpha, and veer',
-                                             variable=self.idealProfileVar)
+                                             variable=self.idealProfileVar,
+                                             command=self.update_ideal_profile)
         vcmd = self.register(self.update_profiles)
         self.alpha = self.EntryRow(section, 'alpha', 'Shear exponent',
                                    vcmd=vcmd)
@@ -651,6 +652,17 @@ class MainWindow(tk.Frame):
             self.latitude.config(state='disabled')
 
 
+    def update_ideal_profile(self):
+        sourceType = self.sourceTypeVar.get()
+        ideal = self.idealProfileVar.get()
+        if (sourceType=='column') and (ideal==1):
+            self.alpha.config(state='normal')
+            self.veer.config(state='normal')
+        else:
+            self.alpha.config(state='disabled')
+            self.veer.config(state='disabled')
+
+
     def update_source_type(self,sourceType):
         if sourceType=='single height':
             self.profileTable.config(state='disabled',fg='light grey')
@@ -805,6 +817,7 @@ class MainWindow(tk.Frame):
         self.update_coriolis()
         self.update_velocity_init(self.velocityInitTypeVar.get())
         self.update_temperature_init(self.temperatureInitTypeVar.get())
+        self.update_ideal_profile()
         self.update_surface_bc()
 
 
