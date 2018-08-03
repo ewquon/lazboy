@@ -711,7 +711,20 @@ class MainWindow(tk.Frame):
         print('velocityInitType = '+initType)
 
     def update_temperature_init(self,initType):
-        print('temperatureInitType = '+initType)
+        if initType == 'simple':
+            self.TGradUpper.config(state='normal')
+            self.zInversion.config(state='normal')
+            self.inversionWidth.config(state='normal')
+            self.TBottom.config(state='normal')
+            self.TTop.config(state='normal')
+        elif initType == 'table':
+            self.TGradUpper.config(state='disabled')
+            self.zInversion.config(state='disabled')
+            self.inversionWidth.config(state='disabled')
+            self.TBottom.config(state='disabled')
+            self.TTop.config(state='disabled')
+        else:
+            raise ValueError('Unexpected temperatureInitType: '+initType)
 
 
     #--------------------------------------------------------------------------
@@ -1027,6 +1040,7 @@ class MainWindow(tk.Frame):
     # Note: importing matplotlib at the beginning causes a crash
 
     def plot_initial_conditions(self):
+        self.update_profiles()
         inittype = self.velocityInitTypeVar.get()
         if inittype == 'geostrophic':
             U0 = float(self.U0Mag.get()) * np.ones(self.z.shape)
@@ -1054,6 +1068,7 @@ class MainWindow(tk.Frame):
         plt.show()
 
     def plot_background_conditions(self):
+        self.update_profiles()
         listlist = self._text_to_listlist(self.profileTable.get('1.0',tk.END))
         data = np.array(listlist)
 
