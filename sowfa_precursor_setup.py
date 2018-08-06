@@ -76,6 +76,7 @@ class MainWindow(tk.Frame):
 
         # update window size
         screen_w, screen_h = master.winfo_screenwidth(), root.winfo_screenheight()
+        if DEBUG: print('Detected screen size:',screen_w,screen_h)
         master.update() # need to render window before gettin dimensions
         widgets_w = self.scrollableframe.winfo_width() + self.scrollbar.winfo_width()
         master.geometry('{:d}x{:d}+0+0'.format(widgets_w,screen_h))
@@ -122,7 +123,7 @@ class MainWindow(tk.Frame):
         """atmosphere controls"""
         self.velocityInitTypeVar = tk.StringVar(self.master, value='geostrophic')
         self.temperatureInitTypeVar = tk.StringVar(self.master, value='simple')
-        self.sourceTypeVar = tk.StringVar(self.master, value='single height')
+        self.sourceTypeVar = tk.StringVar(self.master, value='constant')
         #self.p_rgh0 = 0.0  # Initial pressure (minus the hydrostatic variation and normalized by density) (m^2/s^2).
         #self.nuSgs0 = 0.0  # Initial SGS viscosity (m^2/s).
         #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
@@ -424,7 +425,7 @@ class MainWindow(tk.Frame):
 
         self.sourceType = self.OptionMenuRow(section, 'sourceType',
                                              'Computed source type',
-                                             args=['single height','column'],
+                                             args=['constant','profile'],
                                              variable=self.sourceTypeVar,
                                              command=self.update_source_type)
         self.idealProfile = self.CheckboxRow(section,'idealProfile',
@@ -590,7 +591,6 @@ class MainWindow(tk.Frame):
             self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
             self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
         elif temperatureInit == 'table':
-            print('TODO: temperatureInit == table')
             self.z_T = profiledata[:,0]
             self.T = profiledata[:,3]
         else:
@@ -675,7 +675,7 @@ class MainWindow(tk.Frame):
     def update_ideal_profile(self):
         sourceType = self.sourceTypeVar.get()
         ideal = self.idealProfileVar.get()
-        if (sourceType=='column') and (ideal==1):
+        if (sourceType=='profile') and (ideal==1):
             self.alpha.config(state='normal')
             self.veer.config(state='normal')
         else:
@@ -684,13 +684,13 @@ class MainWindow(tk.Frame):
 
 
     def update_source_type(self,sourceType):
-        if sourceType=='single height':
+        if sourceType=='constant':
             self.profileTable.config(state='disabled',fg='light grey')
             self.plot_bkgnd_button.config(state='disabled')
             self.idealProfile.config(state='disabled')
             self.alpha.config(state='disabled')
             self.veer.config(state='disabled')
-        elif sourceType=='column':
+        elif sourceType=='profile':
             self.profileTable.config(state='normal',fg='black')
             self.plot_bkgnd_button.config(state='normal')
             self.idealProfile.config(state='normal')
@@ -964,7 +964,7 @@ class MainWindow(tk.Frame):
                          os.path.join(dpath,'constant','ABLProperties'))
             shutil.copy2(os.path.join(srcdir,'constant','polyMesh','blockMeshDict'),
                          os.path.join(dpath,'constant','polyMesh'))
-            if source_type == 'column':
+            if source_type == 'profile':
                 # write out forcing table
                 fpath = os.path.join(dpath,'constant','momentumForcingTable')
                 xmom_sources = ' '.join([str(u) for u in self.U])
@@ -1048,7 +1048,7 @@ class MainWindow(tk.Frame):
 
         # Check IC/BCs
         if (self.velocityInitTypeVar.get() == 'table') \
-                and (not self.sourceTypeVar.get() == 'column'):
+                and (not self.sourceTypeVar.get() == 'profile'):
             self._alert('Need specified profile table for initialization')
 
         if (self.surfaceBCTypeVar.get() == 'fixed heating rate') \
