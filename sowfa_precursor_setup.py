@@ -574,9 +574,14 @@ class MainWindow(tk.Frame):
         nz = int(self.nz.get())
         self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
 
+        # for user-specified init/background profile
+        listlist = self._text_to_listlist(self.profileTable.get('1.0',tk.END))
+        profiledata = np.array(listlist)
+
         # temperature profile
         temperatureInit = self.temperatureInitTypeVar.get()
         if temperatureInit == 'simple':
+            self.z_T = self.z
             zbot = zinv - width/2
             ztop = zinv + width/2
             strong_layer = (self.z >= zbot) & (self.z <= ztop)
@@ -585,8 +590,9 @@ class MainWindow(tk.Frame):
             self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
             self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
         elif temperatureInit == 'table':
-            print('TODO')
-            #self.T = np.interp(self.z, 
+            print('TODO: temperatureInit == table')
+            self.z_T = profiledata[:,0]
+            self.T = profiledata[:,3]
         else:
             raise ValueError('Unknown temperature initialization: {:s}'.format(temperatureInit))
 
@@ -612,6 +618,7 @@ class MainWindow(tk.Frame):
 
         if self.idealProfileVar.get():
             # calculate ideal wind profile
+            self.z_U = self.z
             zref = float(self.windHeight.get())
             Uref = float(self.U0Mag.get())
             alpha = float(self.alpha.get())
@@ -628,6 +635,12 @@ class MainWindow(tk.Frame):
             self.V = self.WS * np.sin(self.WD)
 
             self._update_profile_text()
+
+        else:
+            # get input wind profile
+            self.z_U = profiledata[:,0]
+            self.U = profiledata[:,1]
+            self.V = profiledata[:,2]
 
         return True # so the widget isn't disabled
 
@@ -956,11 +969,11 @@ class MainWindow(tk.Frame):
                 fpath = os.path.join(dpath,'constant','momentumForcingTable')
                 xmom_sources = ' '.join([str(u) for u in self.U])
                 ymom_sources = ' '.join([str(v) for v in self.V])
-                zmom_sources = ' '.join(len(self.z)*['0.0'])
-                assert(len(xmom_sources) == len(ymom_sources) == len(self.z))
+                zmom_sources = ' '.join(len(self.z_U)*['0.0'])
+                assert(len(self.U) == len(self.V) == len(self.z_U))
                 with open(fpath,'w') as f:
                     f.write('sourceHeightsMomentum\n(\n\t')
-                    f.write('\n\t'.join([str(z) for z in self.z]))
+                    f.write('\n\t'.join([str(z) for z in self.z_U]))
                     f.write('\n);\n\n')
                     f.write('sourceTableMomentumX\n(\n')
                     f.write('\t(0.0 '+xmom_sources+')\n')
@@ -989,18 +1002,18 @@ class MainWindow(tk.Frame):
 
             fpath = os.path.join(dpath,'system','setFieldsABLDict')
             with open(fpath,'w') as f:
-                f.write(tpl.setFieldsABLDict_template.format(**self.params))
+                f.write(tpl.setFieldsABLDict_template.format(**params_copy))
             print('Wrote out '+fpath)
 
             # scripts
             fpath = os.path.join(dpath,'runscript.preprocess')
             with open(fpath,'w') as f:
-                f.write(tpl.runscript_preprocess_template.format(**self.params))
+                f.write(tpl.runscript_preprocess_template.format(**params_copy))
             print('Wrote out '+fpath)
 
             fpath = os.path.join(dpath,'runscript.solve.1')
             with open(fpath,'w') as f:
-                f.write(tpl.runscript_solve_template.format(**self.params))
+                f.write(tpl.runscript_solve_template.format(**params_copy))
             print('Wrote out '+fpath)
 
         print('Done generating case directory in '+dpath)
@@ -1064,7 +1077,7 @@ class MainWindow(tk.Frame):
         self.update_profiles()
         inittype = self.velocityInitTypeVar.get()
         if inittype == 'geostrophic':
-            U0 = float(self.U0Mag.get()) * np.ones(self.z.shape)
+            U0 = float(self.U0Mag.get()) * np.ones(self.z_U.shape)
         elif inittype == 'log':
             zinv = float(self.zInversion.get())
             z0 = float(self.z0.get())
@@ -1072,8 +1085,8 @@ class MainWindow(tk.Frame):
             kappa = self.params['kappa']
             ustar = kappa * Ug / np.log(zinv/z0)
             print('u* = {:g} m/s'.format(ustar))
-            U0 = ustar / kappa * np.log(self.z/z0)
-            U0[self.z > zinv] = Ug
+            U0 = ustar / kappa * np.log(self.z_U/z0)
+            U0[self.z_U > zinv] = Ug
         elif inittype == 'table':
             U0 = np.sqrt(self.U**2 + self.V**2)
 
@@ -1081,8 +1094,8 @@ class MainWindow(tk.Frame):
         plt.style.use('seaborn-darkgrid')
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Initial Conditions')
-        ax[0].plot(U0, self.z)
-        ax[1].plot(self.T, self.z)
+        ax[0].plot(U0, self.z_U)
+        ax[1].plot(self.T, self.z_T)
         ax[0].set_ylabel('height [m]')
         ax[0].set_xlabel('velocity [m/s]')
         ax[1].set_xlabel('temperature [K]')
