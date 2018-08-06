@@ -415,6 +415,63 @@ echo "Ending OpenFOAM job at: " $(date)
 """
 
 
+ABLProperties_template = """/*---------------------------------------------------------------------------*\\
+| =========                 |                                                 |
+| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\\\    /   O peration     | Version:  1.6                                   |
+|   \\\\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\\\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          ABLProperties;
+}}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include        "../setUp"
+
+
+
+// Properties of the mesoscale source terms
+momentumSourceType       "{momentumSourceType:s}";
+temperatureSourceType    "{temperatureSourceType:s}";
+
+velocityInputType        "component";
+
+{momentumForcing:s}
+
+{temperatureForcing:s}
+
+
+// Relaxation factors applied when computing sources given desired
+// velocity and temperature.
+alphaMomentum      0.7;
+alphaTemperature   0.7;
+
+
+// Properties of the Coriolis force
+planetaryRotationPeriod   $EarthPeriod;
+latitude                  $latitude;
+
+// Statistics gathering input
+statisticsOn              $statisticsOn;
+statisticsFrequency       $statisticsFrequency;
+
+// ************************************************************************* //
+"""
+
+
 setFieldsABLDict_template = """/*--------------------------------*- C++ -*----------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |

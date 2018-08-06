@@ -30,12 +30,36 @@ FoamFile
 momentumSourceType       "computed";
 temperatureSourceType    "given";
 
-velocityInputType        "component";
+velocityInputType        "speedAndDirection";
 
-#include "momentumForcingTable"
+
+// Use the source table in the file listed below.
+sourceHeightsMomentum
+(
+    $windHeight
+);
+
+sourceTableMomentumX
+(
+    (    0.0 $U0Mag)
+    (90000.0 $U0Mag)
+);
+
+sourceTableMomentumY
+(
+    (    0.0 $dir)
+    (90000.0 $dir)
+);
+
+sourceTableMomentumZ
+(
+    (    0.0 0.0)
+    (90000.0 0.0)
+);
 
 sourceHeightsTemperature
 (
+    // for "given" source terms with a single height, this value doesn't matter
     $windHeight
 );
 

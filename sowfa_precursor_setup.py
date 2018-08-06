@@ -129,6 +129,8 @@ class MainWindow(tk.Frame):
         #self.k0 = 0.1  # Initial SGS turbulent kinetic energy (m^2/s^2).
         #self.kappat0 = 0.0  # Initial SGS temperature diffusivity (m^2/s).
         self.idealProfileVar = tk.IntVar(self.master, value=0)
+        self.momentumForcingVar = tk.IntVar(self.master, value=1)
+        self.temperatureForcingVar = tk.IntVar(self.master, value=0)
  
         """surface controls"""
         self.surfaceBCTypeVar = tk.StringVar(self.master, value='fixed flux')
@@ -432,6 +434,13 @@ class MainWindow(tk.Frame):
                                              'Compute velocity profile from U0Mag, dir, windHeight, alpha, and veer',
                                              variable=self.idealProfileVar,
                                              command=self.update_ideal_profile)
+        self.momentumForcing = self.CheckboxRow(section,'momentumForcing',
+                                                'Adjust source terms to match U0Mag at windHeight or specified velocity profile',
+                                                variable=self.momentumForcingVar,
+                                                state='disabled')
+        self.temperatureForcing = self.CheckboxRow(section,'temperatureForcing',
+                                                   'Adjust source terms to match specified temperature profile',
+                                                   variable=self.temperatureForcingVar)
         vcmd = self.register(self.update_profiles)
         self.alpha = self.EntryRow(section, 'alpha', 'Shear exponent',
                                    vcmd=vcmd)
@@ -687,12 +696,16 @@ class MainWindow(tk.Frame):
         if sourceType=='constant':
             self.profileTable.config(state='disabled',fg='light grey')
             self.plot_bkgnd_button.config(state='disabled')
+            #self.momentumForcing.config(state='disabled')
+            self.temperatureForcing.config(state='disabled')
             self.idealProfile.config(state='disabled')
             self.alpha.config(state='disabled')
             self.veer.config(state='disabled')
         elif sourceType=='profile':
             self.profileTable.config(state='normal',fg='black')
             self.plot_bkgnd_button.config(state='normal')
+            #self.momentumForcing.config(state='normal')
+            self.temperatureForcing.config(state='normal')
             self.idealProfile.config(state='normal')
             self.alpha.config(state='normal')
             self.veer.config(state='normal')
@@ -960,35 +973,80 @@ class MainWindow(tk.Frame):
                 shutil.copy2(os.path.join(srcdir,'constant',fname),
                              os.path.join(dpath,'constant'))
             source_type = self.sourceTypeVar.get().replace(' ','')
-            shutil.copy2(os.path.join(srcdir,'constant','ABLProperties.'+source_type),
-                         os.path.join(dpath,'constant','ABLProperties'))
             shutil.copy2(os.path.join(srcdir,'constant','polyMesh','blockMeshDict'),
                          os.path.join(dpath,'constant','polyMesh'))
-            if source_type == 'profile':
-                # write out forcing table
-                fpath = os.path.join(dpath,'constant','momentumForcingTable')
-                xmom_sources = ' '.join([str(u) for u in self.U])
-                ymom_sources = ' '.join([str(v) for v in self.V])
-                zmom_sources = ' '.join(len(self.z_U)*['0.0'])
-                assert(len(self.U) == len(self.V) == len(self.z_U))
-                with open(fpath,'w') as f:
-                    f.write('sourceHeightsMomentum\n(\n\t')
-                    f.write('\n\t'.join([str(z) for z in self.z_U]))
-                    f.write('\n);\n\n')
-                    f.write('sourceTableMomentumX\n(\n')
-                    f.write('\t(0.0 '+xmom_sources+')\n')
-                    f.write('\t(90000.0 '+xmom_sources+')\n')
-                    f.write(');\n\n')
-                    f.write('sourceTableMomentumY\n(\n')
-                    f.write('\t(0.0 '+ymom_sources+')\n')
-                    f.write('\t(90000.0 '+ymom_sources+')\n')
-                    f.write(');\n\n')
-                    f.write('sourceTableMomentumZ\n(\n')
-                    f.write('\t(0.0 '+zmom_sources+')\n')
-                    f.write('\t(90000.0 '+zmom_sources+')\n')
-                    f.write(');\n\n')
-                print('Wrote out '+fpath)
+            if source_type == 'constant':
+                shutil.copy2(os.path.join(srcdir,'constant','ABLProperties.'+source_type),
+                             os.path.join(dpath,'constant','ABLProperties'))
+            elif source_type == 'profile':
+                # setup sources
+                if self.momentumForcingVar.get():
+                    params_copy['momentumSourceType'] = 'computed'
+                    params_copy['momentumForcing'] = '#include "momentumForcingTable"'
+                    # write out momentum forcing table
+                    fpath = os.path.join(dpath,'constant','momentumForcingTable')
+                    xmom_sources = ' '.join([str(u) for u in self.U])
+                    ymom_sources = ' '.join([str(v) for v in self.V])
+                    zmom_sources = ' '.join(len(self.z_U)*['0.0'])
+                    assert(len(self.U) == len(self.V) == len(self.z_U))
+                    with open(fpath,'w') as f:
+                        f.write('sourceHeightsMomentum\n(\n\t')
+                        f.write('\n\t'.join([str(z) for z in self.z_U]))
+                        f.write('\n);\n\n')
+                        f.write('sourceTableMomentumX\n(\n')
+                        f.write('\t(0.0 '+xmom_sources+')\n')
+                        f.write('\t(90000.0 '+xmom_sources+')\n')
+                        f.write(');\n\n')
+                        f.write('sourceTableMomentumY\n(\n')
+                        f.write('\t(0.0 '+ymom_sources+')\n')
+                        f.write('\t(90000.0 '+ymom_sources+')\n')
+                        f.write(');\n\n')
+                        f.write('sourceTableMomentumZ\n(\n')
+                        f.write('\t(0.0 '+zmom_sources+')\n')
+                        f.write('\t(90000.0 '+zmom_sources+')\n')
+                        f.write(');\n\n')
+                    print('Wrote out '+fpath)
+                else:
+                    params_copy['momentumSourceType'] = 'given'
+                    self._alert('source_type=="profile", momentumSourceType=="given" not handled')
+
+                if self.temperatureForcingVar.get():
+                    params_copy['temperatureSourceType'] = 'computed'
+                    params_copy['temperatureForcing'] = '#include "temperatureForcingTable"'
+                    # write out temperature forcing table
+                    fpath = os.path.join(dpath,'constant','temperatureForcingTable')
+                    T_sources = ' '.join([str(T) for T in self.T])
+                    assert(len(self.T) == len(self.z_T))
+                    with open(fpath,'w') as f:
+                        f.write('sourceHeightsTemperature\n(\n\t')
+                        f.write('\n\t'.join([str(z) for z in self.z_T]))
+                        f.write('\n);\n\n')
+                        f.write('sourceTableTemperature\n(\n')
+                        f.write('\t(0.0 '+T_sources+')\n')
+                        f.write('\t(90000.0 '+T_sources+')\n')
+                        f.write(');\n\n')
+                    print('Wrote out '+fpath)
             
+                else:
+                    params_copy['temperatureSourceType'] = 'given'
+                    params_copy['temperatureForcing'] = \
+"""sourceHeightsTemperature
+(
+    $windHeight
+);
+
+sourceTableTemperature
+(
+    (    0.0 0.0)
+    (90000.0 0.0)
+);"""
+
+                fpath = os.path.join(dpath,'constant','ABLProperties')
+                with open(fpath,'w') as f:
+                    f.write(tpl.ABLProperties_template.format(**params_copy))
+                print('Wrote out '+fpath)
+
+
             # solver files
             os.makedirs(os.path.join(dpath,'system','sampling'))
             for fname in system_files:
@@ -1065,6 +1123,7 @@ class MainWindow(tk.Frame):
             self._alert('Convective conditions without a strong inversion layer,'+
                         ' {} K/(100 m) specified'.format(self.Tgrad_strong))
 
+        # Background driving conditions
 
 
     #--------------------------------------------------------------------------
