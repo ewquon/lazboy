@@ -574,14 +574,21 @@ class MainWindow(tk.Frame):
         nz = int(self.nz.get())
         self.z = self.zsurf + self.dz/2 + self.dz*np.arange(nz)
 
-        # simple temperature profile
-        zbot = zinv - width/2
-        ztop = zinv + width/2
-        strong_layer = (self.z >= zbot) & (self.z <= ztop)
-        weak_layer = (self.z > ztop)
-        self.T = Tbot * np.ones(self.z.shape)
-        self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
-        self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
+        # temperature profile
+        temperatureInit = self.temperatureInitTypeVar.get()
+        if temperatureInit == 'simple':
+            zbot = zinv - width/2
+            ztop = zinv + width/2
+            strong_layer = (self.z >= zbot) & (self.z <= ztop)
+            weak_layer = (self.z > ztop)
+            self.T = Tbot * np.ones(self.z.shape)
+            self.T[strong_layer] = Tbot + (self.z[strong_layer] - zbot) * (Ttop-Tbot)/width
+            self.T[weak_layer] = Ttop + (self.z[weak_layer] - ztop) * Tgrad
+        elif temperatureInit == 'table':
+            print('TODO')
+            #self.T = np.interp(self.z, 
+        else:
+            raise ValueError('Unknown temperature initialization: {:s}'.format(temperatureInit))
 
         # update direction name
         if (wdir >= 337.5) and (wdir < 22.5):
@@ -833,7 +840,7 @@ class MainWindow(tk.Frame):
                 pass
             else:
                 if widget.winfo_class() == 'Entry':
-                    if DEBUG: print('Updated variable "{}" ({}) from Entry'.format(name,str(dtype)))
+                    if DEBUG: print('Updated variable "{}" {} from Entry'.format(name,str(dtype)))
                     wvar = widget.get()
                     if dtype is list:
                         dtype = type(val[0])
@@ -843,7 +850,7 @@ class MainWindow(tk.Frame):
                     else:
                         self.params[name] = dtype(wvar)
                 elif widget.winfo_class() == 'Text':
-                    if DEBUG: print('Updated variable "{}" ({}) from Text'.format(name,str(dtype)))
+                    if DEBUG: print('Updated variable "{}" {} from Text'.format(name,str(dtype)))
                     text = widget.get('1.0',tk.END)
                     #listlist = self._text_to_listlist(text)
                     #if DEBUG: print(' reconstructed list of lists: {}'.format(listlist))
@@ -852,7 +859,7 @@ class MainWindow(tk.Frame):
                 else:
                     # need to get from control variable instead of widget
                     if DEBUG:
-                        print('Updated variable "{}" ({}) from {}'.format(
+                        print('Updated variable "{}" {} from {}'.format(
                             name, str(dtype), widget.winfo_class()) )
                     wvar = getattr(self, name+'Var').get()
                     self.params[name] = dtype(wvar)
@@ -947,21 +954,22 @@ class MainWindow(tk.Frame):
             if source_type == 'column':
                 # write out forcing table
                 fpath = os.path.join(dpath,'constant','momentumForcingTable')
+                xmom_sources = ' '.join([str(u) for u in self.U])
+                ymom_sources = ' '.join([str(v) for v in self.V])
+                zmom_sources = ' '.join(len(self.z)*['0.0'])
+                assert(len(xmom_sources) == len(ymom_sources) == len(self.z))
                 with open(fpath,'w') as f:
                     f.write('sourceHeightsMomentum\n(\n\t')
                     f.write('\n\t'.join([str(z) for z in self.z]))
                     f.write('\n);\n\n')
-                    xmom_sources = ' '.join([str(u) for u in self.U])
                     f.write('sourceTableMomentumX\n(\n')
                     f.write('\t(0.0 '+xmom_sources+')\n')
                     f.write('\t(90000.0 '+xmom_sources+')\n')
                     f.write(');\n\n')
-                    ymom_sources = ' '.join([str(v) for v in self.V])
                     f.write('sourceTableMomentumY\n(\n')
                     f.write('\t(0.0 '+ymom_sources+')\n')
                     f.write('\t(90000.0 '+ymom_sources+')\n')
                     f.write(');\n\n')
-                    zmom_sources = ' '.join(len(self.z)*['0.0'])
                     f.write('sourceTableMomentumZ\n(\n')
                     f.write('\t(0.0 '+zmom_sources+')\n')
                     f.write('\t(90000.0 '+zmom_sources+')\n')

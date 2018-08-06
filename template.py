@@ -13,10 +13,10 @@ def get_templates():
                         and name.endswith('.yaml') }
 
     listing = os.listdir(os.getcwd())
-    print(listing)
     custom_configs = { os.path.splitext(name)[0]: os.path.join(os.getcwd(),name)
                         for name in listing
                         if os.path.isfile(name) and name.endswith('.yaml') }
+    print('Local configuration(s):',custom_configs)
 
     return templates, custom_configs
 
@@ -74,7 +74,7 @@ k0: {k0:f}  # Initial SGS turbulent kinetic energy (m^2/s^2).
 kappat0: {kappat0:f}  # Initial SGS temperature diffusivity (m^2/s).
 TGradUpper: {TGradUpper:f}  # Potential temperature gradient above the strong inversion (K/m).
 zInversion: {zInversion:f}  # Height of the middle of the initial strong capping inversion (m).
-inversionWidth: {inversionWidth:g}  # Vertical width of the intial strong capping inversion (m).
+inversionWidth: {inversionWidth:f}  # Vertical width of the intial strong capping inversion (m).
 TBottom: {TBottom:f}  # Initial potential temperature at bottom of strong capping inversion (K).
 TTop: {TTop:f}  # Initial potential temperature at top of strong capping inversion (K).
 
@@ -90,8 +90,8 @@ surfaceBCType: {surfaceBCType:s}
 qwall: {qwall:f}  # Temperature flux at wall (modify the z-value).  A negative value is flux into domain (K-m/s).
 Rwall: {Rwall}  # Initial wall shear stress (m^2/s^2).
 kappa: {kappa:f}  # von Karman constant.
-z0: {z0:g}  # Surface roughness (m).
-heatingRate: {heatingRate:g}  # Surface temperature change rate (when not directly setting temperature flux) (K/s).
+z0: {z0:f}  # Surface roughness (m).
+heatingRate: {heatingRate:e}  # Surface temperature change rate (when not directly setting temperature flux) (K/s).
 
 
 # advanced settings
@@ -111,12 +111,12 @@ statisticsFrequency: {statisticsFrequency:d}  # Frequency in time steps of stati
 # -transport properties
 Pr: {Pr:f}  # Molecular Prandtl number.
 Prt: {Prt:f}  # Turbulent Prandtl number.
-nu: {nu:g}  # Molecular viscosity (m^2/s).
+nu: {nu:e}  # Molecular viscosity (m^2/s).
 
 # -SGS model inputs
 LESModel: {LESModel:s}  # SGS model selection.
-ce: {ce:g}  # SGS model constant.
-ck: {ck:g}  # SGS model constant.
+ce: {ce:e}  # SGS model constant.
+ck: {ck:e}  # SGS model constant.
 """
 
 
