@@ -27,6 +27,8 @@ import template as tpl
 
 DEBUG = True
 
+pltstyle = 'seaborn-darkgrid'
+
 # common files
 soln_fields = ['U','T','p_rgh','k','kappat','nuSgs','Rwall']
 constant_files = [
@@ -74,10 +76,11 @@ class MainWindow(tk.Frame):
         self.init_window()
         self.restore_defaults()
 
-        # update window size
+        # resize window
         screen_w, screen_h = master.winfo_screenwidth(), root.winfo_screenheight()
         if DEBUG: print('Detected screen size:',screen_w,screen_h)
         master.update() # need to render window before gettin dimensions
+        #master.attributes('-zoomed', True)
         widgets_w = self.scrollableframe.winfo_width() + self.scrollbar.winfo_width()
         master.geometry('{:d}x{:d}+0+0'.format(widgets_w,screen_h))
 
@@ -1149,12 +1152,19 @@ sourceTableTemperature
         elif inittype == 'table':
             U0 = np.sqrt(self.U**2 + self.V**2)
 
+        if DEBUG: print('Plotting initial conditions')
         import matplotlib.pyplot as plt
-        plt.style.use('seaborn-darkgrid')
+        plt.style.use(pltstyle)
         fig,ax = plt.subplots(ncols=2)
         fig.suptitle('Initial Conditions')
         ax[0].plot(U0, self.z_U)
         ax[1].plot(self.T, self.z_T)
+        if not inittype == 'table':
+            wdir = float(self.dir.get())
+            ax[0].text(0, 1, r'direction: {:.1f}$^\circ$'.format(wdir),
+                       horizontalalignment='left',
+                       verticalalignment='top',
+                       transform=ax[0].transAxes)
         ax[0].set_ylabel('height [m]')
         ax[0].set_xlabel('velocity [m/s]')
         ax[1].set_xlabel('temperature [K]')
@@ -1164,21 +1174,36 @@ sourceTableTemperature
         self.update_profiles()
         listlist = self._text_to_listlist(self.profileTable.get('1.0',tk.END))
         data = np.array(listlist)
+        z = data[:,0]
+        U = data[:,1]
+        V = data[:,2]
+        T = data[:,3]
 
+        wspd = np.sqrt(U*U + V*V)
+        wdir = 180./np.pi * np.arctan2(-U,-V)
+        wdir[wdir < 0] += 360.
+
+        if DEBUG: print('Plotting background conditions')
         import matplotlib.pyplot as plt
-        plt.style.use('seaborn-darkgrid')
-        fig,ax = plt.subplots(ncols=2)
+        plt.style.use(pltstyle)
+#        fig,ax = plt.subplots(ncols=2)
+#        fig.suptitle('Background Conditions')
+#        ax[0].plot(U, z, label='U')
+#        ax[0].plot(V, z, label='V')
+#        ax[1].plot(T, z)
+#        ax[0].set_ylabel('height [m]')
+#        ax[0].set_xlabel('velocity [m/s]')
+#        ax[1].set_xlabel('temperature [K]')
+#        ax[0].legend(loc='best')
+        fig,ax = plt.subplots(ncols=3)
         fig.suptitle('Background Conditions')
-        #ax[0].plot(self.U, self.z, label='U')
-        #ax[0].plot(self.V, self.z, label='V')
-        #ax[1].plot(self.T, self.z)
-        ax[0].plot(data[:,1], data[:,0], label='U')
-        ax[0].plot(data[:,2], data[:,0], label='V')
-        ax[1].plot(data[:,3], data[:,0])
+        ax[0].plot(wspd, z)
+        ax[1].plot(wdir, z)
+        ax[2].plot(T, z)
         ax[0].set_ylabel('height [m]')
-        ax[0].set_xlabel('velocity [m/s]')
-        ax[1].set_xlabel('temperature [K]')
-        ax[0].legend(loc='best')
+        ax[0].set_xlabel('wind speed [m/s]')
+        ax[1].set_xlabel('wind direction [deg]')
+        ax[2].set_xlabel('temperature [K]')
         plt.show()
 
 
