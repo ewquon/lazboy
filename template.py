@@ -66,7 +66,7 @@ EarthPeriod: {EarthPeriod:f}  # Earth's rotation period (hr).
 
 # atmosphere controls
 velocityInitType: {velocityInitType:s}  # How to initialize the base velocity profile (geostrophic, log, table)
-temperatureInitType: {temperatureInitType:s}ow to initialize the base temperature profile (simple, table)
+temperatureInitType: {temperatureInitType:s}  # How to initialize the base temperature profile (simple, table)
 U0Mag: {U0Mag:f}  # Initial condition for wind speed (m/s).
 dir: {dir:f}  # Initial condition for wind direction (deg).
 windHeight: {windHeight:f}  # Height at which to drive mean wind to U0Mag/dir (m).

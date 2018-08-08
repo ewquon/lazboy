@@ -937,7 +937,8 @@ class MainWindow(tk.Frame):
 
         """Create run directory structure here"""
         if not dpath == '':
-            os.makedirs(dpath)
+            if not os.path.isdir(dpath):
+                os.makedirs(dpath)
             casename = os.path.split(dpath)[-1]
             self.params['casename'] = simpledialog.askstring(
                                             title='runscript',
