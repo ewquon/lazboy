@@ -204,9 +204,9 @@ class MainWindow(tk.Frame):
 
         # get available templates
         template_list, custom_config_list = tpl.get_templates()
-        template_options = template_list.keys()
+        template_options = list(template_list.keys())
         if len(custom_config_list) > 0:
-            template_options += ['---'] + custom_config_list.keys()
+            template_options += ['---'] + list(custom_config_list.keys())
             for key,val in custom_config_list.items():
                 template_list[key] = val
             self.template.set(key)
