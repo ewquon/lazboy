@@ -456,7 +456,7 @@ class MainWindow(tk.Frame):
         be used to initialize the solution with setFieldsABL. Also, the
         background conditions are assumed to be stationary.
         """
-        namestr = tk.Label(section, text='profileTable')
+        namestr = tk.Label(section, text='profileTable\n(z, U, V, theta)')
         namestr.grid(row=self.nextrow(), column=0)
         text = ScrolledText(section, borderwidth=1)
         text.grid(row=self.lastrow, column=1, columnspan=2, sticky='ew')
@@ -689,7 +689,7 @@ class MainWindow(tk.Frame):
         self.profileTable.delete('1.0', tk.END)
         #self.profileTable.insert(tk.END, '//   z       U       V       T\n')
         for zi,Ui,Vi,Ti in zip(self.z,self.U,self.V,self.T):
-            rowdata = '({}  {}  {}  {})\n'.format(zi,Ui,Vi,Ti)
+            rowdata = '{}  {}  {}  {}\n'.format(zi,Ui,Vi,Ti)
             self.profileTable.insert(tk.END, rowdata)
 
 
@@ -814,15 +814,16 @@ class MainWindow(tk.Frame):
 
     def _text_to_listlist(self,text):
         """Parse
-        (0.0 0.0 0.0 273.121917725)
-        (5.0 1.82671529027 1.98969371553 282.524156211)
-        (10.0 2.52983624172 2.77228242751 283.156504284)
-        (15.0 3.01282071998 3.35521702288 283.64108812)
+        0.0 0.0 0.0 273.121917725
+        5.0 1.82671529027 1.98969371553 282.524156211
+        10.0 2.52983624172 2.77228242751 283.156504284
+        15.0 3.01282071998 3.35521702288 283.64108812
         ...
         into a list of lists, for conversion to 2-D np.ndarray.
         """
         lines = text.split('\n')
-        listlist = [ [ float(val) for val in line.strip().strip('()').split() ]
+        #listlist = [ [ float(val) for val in line.strip().strip('()').split() ]
+        listlist = [ [ float(val) for val in line.strip().split() ]
                     for line in lines if not line.strip()=='' ]
         return listlist
 
@@ -1013,6 +1014,13 @@ class MainWindow(tk.Frame):
               }}\n""".format(name=patch)
             inlet_patches += '          );'
             params_copy['inlet_patches'] = inlet_patches
+
+            # convert profile table to OpenFOAM format
+            data = ''
+            for line in params_copy['profileTable'].split('\n'):
+                if not line == '':
+                    data += '(' + line + ')\n'
+            params_copy['profileTable'] = data.strip()
 
             # write setUp file
             tpl.copy_and_update(srcdir,dpath,
