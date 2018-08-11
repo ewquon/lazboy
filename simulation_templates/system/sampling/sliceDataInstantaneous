@@ -14,40 +14,47 @@
           );
           surfaces
           (
-              slice_horizontal_1
+//              slice_horizontal_20
+//              {
+//                  type         plane;
+//                  basePoint    (2160.01 2160.01 20.01);
+//                  normalVector (0 0 1);
+//                  triangulate  false;
+//              }
+              slice_horizontal_80
               {
                   type         plane;
-                  basePoint    (1500.01 1500.01 20.01);
+                  basePoint    (2160.01 2160.01 80.01);
                   normalVector (0 0 1);
                   triangulate  false;
               }
-              slice_horizontal_2
+              slice_horizontal_250
               {
                   type         plane;
-                  basePoint    (1500.01 1500.01 80.01);
+                  basePoint    (2160.01 2160.01 250.01);
                   normalVector (0 0 1);
                   triangulate  false;
               }
-              slice_horizontal_3
+              slice_horizontal_500
               {
                   type         plane;
-                  basePoint    (1500.01 1500.01 200.01);
+                  basePoint    (2160.01 2160.01 500.01);
                   normalVector (0 0 1);
                   triangulate  false;
               }
-              slice_cross_stream
+              slice_vertical
               {
                   type         plane;
-                  basePoint    (1500.01 1500.01 84.0);
+                  basePoint    (2160.01 2160.01 80.01);
                   normalVector (0 1 0);
                   triangulate  false;
               }
-              slice_streamwise
-              {
-                  type         plane;
-                  basePoint    (1500.01 1500.01 84.0);
-                  normalVector (1 0 0);
-                  triangulate  false;
-              }
+//              slice_streamwise
+//              {
+//                  type         plane;
+//                  basePoint    (1500.01 1500.01 84.0);
+//                  normalVector (1 0 0);
+//                  triangulate  false;
+//              }
           );
       }

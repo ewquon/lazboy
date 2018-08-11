@@ -573,6 +573,7 @@ class MainWindow(tk.Frame):
         then horizontal wind components described by shear and veer
         parameters is also calculated.
         """
+        zref = float(self.windHeight.get())
         zinv = float(self.zInversion.get())
         Tbot = float(self.TBottom.get())
         Ttop = float(self.TTop.get())
@@ -608,8 +609,41 @@ class MainWindow(tk.Frame):
         else:
             raise ValueError('Unknown temperature initialization: {:s}'.format(temperatureInit))
 
-        # update direction name
-        if (wdir >= 337.5) and (wdir < 22.5):
+        if self.idealProfileVar.get():
+            # calculate ideal wind profile
+            self.z_U = self.z
+            Uref = float(self.U0Mag.get())
+            alpha = float(self.alpha.get())
+            veer = float(self.veer.get())
+
+            self.WS = Uref * (self.z / zref)**alpha
+            self.WD = wdir + veer/zref * (self.z - zref)
+            freeatm = self.z >= zinv
+            self.WD[freeatm] = self.WD[freeatm][0]
+
+            ang = 1.5*np.pi - np.pi/180*self.WD
+            self.U = self.WS * np.cos(ang)
+            self.V = self.WS * np.sin(ang)
+
+            self._update_profile_text()
+
+        else:
+            # get input wind profile
+            self.z_U = profiledata[:,0]
+            self.U = profiledata[:,1]
+            self.V = profiledata[:,2]
+            self.WS = np.sqrt(self.U**2 + self.V**2)
+            self.WD = 180./np.pi * np.arctan2(-self.U, -self.V)
+            self.WD[self.WD < 0] += 360.
+
+        # update wind direction
+        sourceType = self.sourceTypeVar.get()
+        if sourceType=='profile':
+            # if given profile, interpolate wind direction at hub height
+            wdir = np.interp(zref, self.z_U, self.WD)
+        ang = 1.5*np.pi - wdir*np.pi/180.
+        self.wdir_vec = np.array([np.cos(ang), np.sin(ang), 0])
+        if (wdir >= 337.5) or (wdir < 22.5):
             self.wdirname = 'north'
         elif (wdir >= 22.5) and (wdir < 67.5):
             self.wdirname = 'northeast'
@@ -627,32 +661,8 @@ class MainWindow(tk.Frame):
             self.wdirname = 'northwest'
         else:
             raise ValueError('Unexpected wind direction: {:f}'.format(wdir))
-
-        if self.idealProfileVar.get():
-            # calculate ideal wind profile
-            self.z_U = self.z
-            zref = float(self.windHeight.get())
-            Uref = float(self.U0Mag.get())
-            alpha = float(self.alpha.get())
-            veer = float(self.veer.get()) * np.pi/180.
-
-            wdir = 270. - wdir
-            if wdir < 0: wdir += 360.
-            wdir *= np.pi/180.
-            self.WS = Uref * (self.z / zref)**alpha
-            self.WD = wdir + veer/zref * (self.z - zref)
-            freeatm = self.z >= zinv
-            self.WD[freeatm] = self.WD[freeatm][0]
-            self.U = self.WS * np.cos(self.WD)
-            self.V = self.WS * np.sin(self.WD)
-
-            self._update_profile_text()
-
-        else:
-            # get input wind profile
-            self.z_U = profiledata[:,0]
-            self.U = profiledata[:,1]
-            self.V = profiledata[:,2]
+        if DEBUG:
+            print('Wind direction (z={:g} m) : {:g}, {:s}erly wind'.format(zref, wdir,self.wdirname))
 
         return True # so the widget isn't disabled
 
@@ -1156,7 +1166,7 @@ sourceTableTemperature
         if DEBUG: print('Plotting initial conditions')
         import matplotlib.pyplot as plt
         plt.style.use(pltstyle)
-        fig,ax = plt.subplots(ncols=2)
+        fig,ax = plt.subplots(ncols=2,sharey=True)
         fig.suptitle('Initial Conditions')
         ax[0].plot(U0, self.z_U)
         ax[1].plot(self.T, self.z_T)
@@ -1196,7 +1206,7 @@ sourceTableTemperature
 #        ax[0].set_xlabel('velocity [m/s]')
 #        ax[1].set_xlabel('temperature [K]')
 #        ax[0].legend(loc='best')
-        fig,ax = plt.subplots(ncols=3)
+        fig,ax = plt.subplots(ncols=3,sharey=True)
         fig.suptitle('Background Conditions')
         ax[0].plot(wspd, z)
         ax[1].plot(wdir, z)
