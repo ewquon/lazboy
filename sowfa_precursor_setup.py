@@ -984,6 +984,17 @@ class MainWindow(tk.Frame):
                 if isinstance(val, bool):
                     params_copy[key] = str(val).lower()
 
+            # additional calculations for substitution into sowfa templates
+            off = 0.01
+            params_copy['halfx'] = (self.params['xMin']+self.params['xMax']) / 2 + off
+            params_copy['halfy'] = (self.params['yMin']+self.params['yMax']) / 2 + off
+            params_copy['halfz'] = (self.params['zMin']+self.params['zMax']) / 2 + off
+            params_copy['zhub'] = self.params['windHeight'] + off
+
+            norm = np.cross([0,0,1], self.wdir_vec)
+            norm_components = [ round(val,8) for val in norm ]
+            params_copy['vertical_plane_normal'] = '{:g} {:g} {:g}'.format(*norm_components)
+
             # select boundary patches
             inlet_patches = 'surfaces\n          (\n'
             if len(self.wdirname) <= 5:

@@ -17,21 +17,21 @@
               slice_horizontal_hub
               {{
                   type         plane;
-                  basePoint    (2160.01 2160.01 80.01);
+                  basePoint    ({halfx:.2f} {halfy:.2f} {zhub:.2f});
                   normalVector (0 0 1);
                   triangulate  false;
               }}
               slice_vertical
               {{
                   type         plane;
-                  basePoint    (2160.01 2160.01 80.01);
-                  normalVector (0 1 0);
+                  basePoint    ({halfx:.2f} {halfy:.2f} {zhub:.2f});
+                  normalVector ({vertical_plane_normal:s});
                   triangulate  false;
               }}
 //            slice_cross_stream
 //            {{
 //                type         plane;
-//                basePoint    (1500.01 1500.01 84.0);
+//                basePoint    ({halfx:.2f} {halfy:.2f} {zhub:.2f});
 //                normalVector (1 0 0);
 //                triangulate  false;
 //            }}
