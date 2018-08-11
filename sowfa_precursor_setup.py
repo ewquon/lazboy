@@ -643,26 +643,44 @@ class MainWindow(tk.Frame):
             wdir = np.interp(zref, self.z_U, self.WD)
         ang = 1.5*np.pi - wdir*np.pi/180.
         self.wdir_vec = np.array([np.cos(ang), np.sin(ang), 0])
-        if (wdir >= 337.5) or (wdir < 22.5):
+        #if (wdir >= 337.5) or (wdir < 22.5):
+        #    self.wdirname = 'north'
+        #elif (wdir >= 22.5) and (wdir < 67.5):
+        #    self.wdirname = 'northeast'
+        #elif (wdir >= 67.5) and (wdir < 112.5):
+        #    self.wdirname = 'east'
+        #elif (wdir >= 112.5) and (wdir < 157.5):
+        #    self.wdirname = 'southeast'
+        #elif (wdir >= 157.5) and (wdir < 202.5):
+        #    self.wdirname = 'south'
+        #elif (wdir >= 202.5) and (wdir < 247.5):
+        #    self.wdirname = 'southwest'
+        #elif (wdir >= 247.5) and (wdir < 292.5):
+        #    self.wdirname = 'west'
+        #elif (wdir >= 292.5) and (wdir < 337.5):
+        #    self.wdirname = 'northwest'
+        # These are not true compass sectors, but rather, directions
+        # corresponding to SOWFA inflow
+        if wdir == 0.0:
             self.wdirname = 'north'
-        elif (wdir >= 22.5) and (wdir < 67.5):
+        elif (wdir > 0.0) and (wdir < 90.0):
             self.wdirname = 'northeast'
-        elif (wdir >= 67.5) and (wdir < 112.5):
+        elif wdir == 90.0:
             self.wdirname = 'east'
-        elif (wdir >= 112.5) and (wdir < 157.5):
+        elif (wdir > 90.0) and (wdir < 180.0):
             self.wdirname = 'southeast'
-        elif (wdir >= 157.5) and (wdir < 202.5):
+        elif wdir == 180.0:
             self.wdirname = 'south'
-        elif (wdir >= 202.5) and (wdir < 247.5):
+        elif (wdir > 180.0) and (wdir < 270.0):
             self.wdirname = 'southwest'
-        elif (wdir >= 247.5) and (wdir < 292.5):
+        elif wdir == 270.0:
             self.wdirname = 'west'
-        elif (wdir >= 292.5) and (wdir < 337.5):
+        elif (wdir > 270.0) and (wdir < 360.0):
             self.wdirname = 'northwest'
         else:
             raise ValueError('Unexpected wind direction: {:f}'.format(wdir))
         if DEBUG:
-            print('Wind direction (z={:g} m) : {:g}, {:s}erly wind'.format(zref, wdir,self.wdirname))
+            print('Wind direction (z={:g} m) : {:g}, SOWFA "{:s}erly" wind'.format(zref, wdir,self.wdirname))
 
         return True # so the widget isn't disabled
 
@@ -966,11 +984,28 @@ class MainWindow(tk.Frame):
                 if isinstance(val, bool):
                     params_copy[key] = str(val).lower()
 
+            # select boundary patches
+            inlet_patches = 'surfaces\n          (\n'
+            if len(self.wdirname) <= 5:
+                # single inlet
+                patches = [self.wdirname]
+            else:
+                # inflow not aligned with a single patch
+                patches = [self.wdirname[:5], self.wdirname[5:]]
+            for patch in patches:
+                inlet_patches += """              {name}
+              {{
+                  type         patch;
+                  patches      ({name});
+                  triangulate  false;
+              }}\n""".format(name=patch)
+            inlet_patches += '          );'
+            params_copy['inlet_patches'] = inlet_patches
+
             # write setUp file
-            fpath = os.path.join(dpath,'setUp')
-            with open(fpath,'w') as f:
-                f.write(tpl.setUp_template.format(**params_copy))
-            print('Wrote out '+fpath)
+            tpl.copy_and_update(srcdir,dpath,
+                                'setUp',
+                                params_copy)
 
             # initial conditions
             os.makedirs(os.path.join(dpath,'0.original'))
@@ -986,9 +1021,9 @@ class MainWindow(tk.Frame):
             for fname in constant_files:
                 shutil.copy2(os.path.join(srcdir,'constant',fname),
                              os.path.join(dpath,'constant'))
-            source_type = self.sourceTypeVar.get().replace(' ','')
             shutil.copy2(os.path.join(srcdir,'constant','polyMesh','blockMeshDict'),
                          os.path.join(dpath,'constant','polyMesh'))
+            source_type = self.sourceTypeVar.get().replace(' ','')
             if source_type == 'constant':
                 shutil.copy2(os.path.join(srcdir,'constant','ABLProperties.'+source_type),
                              os.path.join(dpath,'constant','ABLProperties'))
@@ -1055,10 +1090,9 @@ sourceTableTemperature
     (90000.0 0.0)
 );"""
 
-                fpath = os.path.join(dpath,'constant','ABLProperties')
-                with open(fpath,'w') as f:
-                    f.write(tpl.ABLProperties_template.format(**params_copy))
-                print('Wrote out '+fpath)
+                tpl.copy_and_update(srcdir,dpath,
+                                    os.path.join('constant','ABLProperties'),
+                                    params_copy)
 
 
             # solver files
@@ -1067,26 +1101,25 @@ sourceTableTemperature
                 shutil.copy2(os.path.join(srcdir,'system',fname),
                              os.path.join(dpath,'system'))
             for fname in sampling_files:
-                shutil.copy2(os.path.join(srcdir,'system','sampling',fname),
-                             os.path.join(dpath,'system','sampling'))
+                #shutil.copy2(os.path.join(srcdir,'system','sampling',fname),
+                #             os.path.join(dpath,'system','sampling'))
+                tpl.copy_and_update(srcdir,dpath,
+                                    os.path.join('system','sampling',fname),
+                                    params_copy)
             shutil.copy2(os.path.join(srcdir,'system','changeDictionaryDict.updateBCs.'+self.wdirname),
                          os.path.join(dpath,'system'))
-
-            fpath = os.path.join(dpath,'system','setFieldsABLDict')
-            with open(fpath,'w') as f:
-                f.write(tpl.setFieldsABLDict_template.format(**params_copy))
-            print('Wrote out '+fpath)
+            tpl.copy_and_update(srcdir,dpath,
+                                os.path.join('system','setFieldsABLDict'),
+                                params_copy)
 
             # scripts
-            fpath = os.path.join(dpath,'runscript.preprocess')
-            with open(fpath,'w') as f:
-                f.write(tpl.runscript_preprocess_template.format(**params_copy))
-            print('Wrote out '+fpath)
+            tpl.copy_and_update(srcdir,dpath,
+                                'runscript.preprocess',
+                                params_copy)
 
-            fpath = os.path.join(dpath,'runscript.solve.1')
-            with open(fpath,'w') as f:
-                f.write(tpl.runscript_solve_template.format(**params_copy))
-            print('Wrote out '+fpath)
+            tpl.copy_and_update(srcdir,dpath,
+                                'runscript.solve.1',
+                                params_copy)
 
         print('Done generating case directory in '+dpath)
 
