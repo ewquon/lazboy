@@ -82,8 +82,8 @@ TTop: {TTop:f}  # Initial potential temperature at top of strong capping inversi
 
 sourceType: {sourceType:s}
 idealProfile: {idealProfile}
-alpha: {alpha:f}  # Shear exponent.
-veer: {veer:f}  # Veer (deg).
+alpha: {alpha:f}  # Shear exponent, not used if idealProfile is False.
+veer: {veer:f}  # Veer (deg), not used if idealProfile is False.
 profileTable: {profileTable}
 
 
