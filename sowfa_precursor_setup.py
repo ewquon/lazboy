@@ -992,6 +992,7 @@ class MainWindow(tk.Frame):
             else:
                 # inflow not aligned with a single patch
                 patches = [self.wdirname[:5], self.wdirname[5:]]
+            print('Inflow patches: {}'.format(patches))
             for patch in patches:
                 inlet_patches += """              {name}
               {{
@@ -1171,6 +1172,13 @@ sourceTableTemperature
                         ' {} K/(100 m) specified'.format(self.Tgrad_strong))
 
         # Background driving conditions
+        if self.sourceTypeVar.get() == 'profile':
+            wdir_variation = np.max(self.WD) - np.min(self.WD)
+            if wdir_variation > 180.0:
+                wdir_variation = np.min(self.WD) + 360. - np.max(self.WD)
+            if wdir_variation > 90.0:
+                self._alert('Veer results in a total wind direction change of'+
+                            ' {} deg, need to use generalized inlet-outlet BC'.format(wdir_variation))
 
 
     #--------------------------------------------------------------------------
