@@ -456,7 +456,10 @@ class MainWindow(tk.Frame):
         be used to initialize the solution with setFieldsABL. Also, the
         background conditions are assumed to be stationary.
         """
-        namestr = tk.Label(section, text='profileTable\n(z, U, V, theta)')
+        profileTableText = 'profileTable\n' + \
+                '(z, U, V, theta)\n\n' + \
+                '***uncheck idealProfile\nif manually editted***'
+        namestr = tk.Label(section, text=profileTableText)
         namestr.grid(row=self.nextrow(), column=0)
         text = ScrolledText(section, borderwidth=1)
         text.grid(row=self.lastrow, column=1, columnspan=2, sticky='ew')
@@ -594,7 +597,7 @@ class MainWindow(tk.Frame):
 
         # temperature profile
         temperatureInit = self.temperatureInitTypeVar.get()
-        if temperatureInit == 'simple':
+        if (temperatureInit == 'simple') or (len(profiledata) == 0):
             self.z_T = self.z
             zbot = zinv - width/2
             ztop = zinv + width/2
@@ -693,6 +696,14 @@ class MainWindow(tk.Frame):
             self.profileTable.insert(tk.END, rowdata)
 
 
+    def _disable_profile_table(self):
+        if not ( (self.sourceTypeVar.get() == 'profile') or
+                 (self.velocityInitTypeVar.get() == 'table') or
+                 (self.temperatureInitTypeVar.get() == 'table') ):
+            self.profileTable.config(state='disabled',fg='light grey')
+            self.plot_bkgnd_button.config(state='disabled')
+
+
     def update_decomp(self,decompType):
         if decompType=='simple':
             self.decompOrder.config(state='normal')
@@ -722,11 +733,9 @@ class MainWindow(tk.Frame):
             self.alpha.config(state='disabled')
             self.veer.config(state='disabled')
 
-
     def update_source_type(self,sourceType):
         if sourceType=='constant':
-            self.profileTable.config(state='disabled',fg='light grey')
-            self.plot_bkgnd_button.config(state='disabled')
+            self._disable_profile_table()
             #self.momentumForcing.config(state='disabled')
             self.temperatureForcing.config(state='disabled')
             self.idealProfile.config(state='disabled')
@@ -784,21 +793,30 @@ class MainWindow(tk.Frame):
 
 
     def update_velocity_init(self,initType):
-        print('velocityInitType = '+initType)
+        if initType == 'table':
+            self.plot_bkgnd_button.config(state='normal')
+            self.profileTable.config(state='normal',fg='black')
+            self.update_profiles()
+        else:
+            self._disable_profile_table()
 
     def update_temperature_init(self,initType):
         if initType == 'simple':
-            self.TGradUpper.config(state='normal')
+            #self.TGradUpper.config(state='normal')
             self.zInversion.config(state='normal')
             self.inversionWidth.config(state='normal')
             self.TBottom.config(state='normal')
             self.TTop.config(state='normal')
+            self._disable_profile_table()
         elif initType == 'table':
-            self.TGradUpper.config(state='disabled')
+            #self.TGradUpper.config(state='disabled')
             self.zInversion.config(state='disabled')
             self.inversionWidth.config(state='disabled')
             self.TBottom.config(state='disabled')
             self.TTop.config(state='disabled')
+            self.plot_bkgnd_button.config(state='normal')
+            self.profileTable.config(state='normal',fg='black')
+            self.update_profiles()
         else:
             raise ValueError('Unexpected temperatureInitType: '+initType)
 
@@ -875,6 +893,7 @@ class MainWindow(tk.Frame):
                     wvar.set(val)
         
         """update active text widgets"""
+        # TODO: update these functions with defaults so we don't need to call *.get()
         self.calc_grid_res()
         #self.update_profiles()
         self.update_source_type(self.sourceTypeVar.get()) # calls update_profiles()
@@ -1190,6 +1209,23 @@ sourceTableTemperature
             self._alert('Convective conditions without a strong inversion layer,'+
                         ' {} K/(100 m) specified'.format(self.Tgrad_strong))
 
+        if (self.temperatureInitTypeVar.get() == 'table'):
+            listlist = self._text_to_listlist(self.profileTable.get('1.0',tk.END))
+            data = np.array(listlist)
+            if len(data) == 0:
+                print('No specified profile')
+            else:
+                z = data[:,0]
+                T = data[:,3]
+                Tgrad = float(self.TGradUpper.get())
+                dTdz_top = (T[-1]-T[-2]) / (z[-1]-z[-2])
+                print('specified, calculated TGradUpper:',Tgrad,dTdz_top)
+                #if not (Tgrad == dTdz_top):
+                if not 1000*np.abs(Tgrad - dTdz_top) < 1e-8:
+                    self._alert('Inconsistent upper boundary condition for temperature:\n' +
+                            '\t{:.1f} K/km specified on boundary\n'.format(1000*Tgrad) + 
+                            '\t{:.1f} K/km from specified interior profile'.format(1000*dTdz_top))
+
         # Background driving conditions
         if self.sourceTypeVar.get() == 'profile':
             wdir_variation = np.max(self.WD) - np.min(self.WD)
@@ -1254,20 +1290,26 @@ sourceTableTemperature
         wdir = 180./np.pi * np.arctan2(-U,-V)
         wdir[wdir < 0] += 360.
 
-        if DEBUG: print('Plotting background conditions')
+        velocityInitType = self.velocityInitTypeVar.get()
+        temperatureInitType = self.temperatureInitTypeVar.get()
+        sourceType = self.sourceTypeVar.get()
+        windtitle = ''
+        temptitle = ''
+        if velocityInitType == 'table':
+            windtitle += 'initial conditions\n'
+        if temperatureInitType == 'table':
+            temptitle += 'initial conditions\n'
+        if sourceType == 'profile':
+            windtitle += 'background conditions'
+            temptitle += 'background conditions'
+        windtitle = windtitle.strip()
+        temptitle = temptitle.strip()
+
+        if DEBUG: print('Plotting profile table')
         import matplotlib.pyplot as plt
         plt.style.use(pltstyle)
-#        fig,ax = plt.subplots(ncols=2)
-#        fig.suptitle('Background Conditions')
-#        ax[0].plot(U, z, label='U')
-#        ax[0].plot(V, z, label='V')
-#        ax[1].plot(T, z)
-#        ax[0].set_ylabel('height [m]')
-#        ax[0].set_xlabel('velocity [m/s]')
-#        ax[1].set_xlabel('temperature [K]')
-#        ax[0].legend(loc='best')
         fig,ax = plt.subplots(ncols=3,sharey=True)
-        fig.suptitle('Background Conditions')
+        fig.suptitle('Profile Table')
         ax[0].plot(wspd, z)
         ax[1].plot(wdir, z)
         ax[2].plot(T, z)
@@ -1275,6 +1317,25 @@ sourceTableTemperature
         ax[0].set_xlabel('wind speed [m/s]')
         ax[1].set_xlabel('wind direction [deg]')
         ax[2].set_xlabel('temperature [K]')
+        ax[0].set_title(windtitle,fontsize='small')
+        ax[1].set_title(windtitle,fontsize='small')
+        ax[2].set_title(temptitle,fontsize='small')
+        overlaytext = 'NOT USED'
+        if not sourceType == 'profile':
+            if not velocityInitType == 'table':
+                ax[0].text(0.5, 0.5, overlaytext, withdash=True,
+                           horizontalalignment='center',
+                           verticalalignment='center',
+                           transform=ax[0].transAxes)
+                ax[1].text(0.5, 0.5, overlaytext, withdash=True,
+                           horizontalalignment='center',
+                           verticalalignment='center',
+                           transform=ax[1].transAxes)
+            if not temperatureInitType == 'table':
+                ax[2].text(0.5, 0.5, overlaytext, withdash=True,
+                           horizontalalignment='center',
+                           verticalalignment='center',
+                           transform=ax[2].transAxes)
         plt.show()
 
 
