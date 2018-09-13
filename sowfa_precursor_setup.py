@@ -458,7 +458,7 @@ class MainWindow(tk.Frame):
         """
         profileTableText = 'profileTable\n' + \
                 '(z, U, V, theta)\n\n' + \
-                '***uncheck idealProfile\nif manually editted***'
+                '***uncheck idealProfile\nif manually edited***'
         namestr = tk.Label(section, text=profileTableText)
         namestr.grid(row=self.nextrow(), column=0)
         text = ScrolledText(section, borderwidth=1)
