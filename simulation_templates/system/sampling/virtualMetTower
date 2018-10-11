@@ -1,0 +1,30 @@
+    TTU_tower
+    {
+          type                probes;
+          functionObjectLibs ("libsampling.so");
+          enabled             true;
+          interpolationScheme cellPoint;
+          outputControl       timeStep;
+          outputInterval      1;
+          fields
+          (
+              U
+              T
+              k
+              kSgs
+          );
+          
+          probeLocations
+          (
+              (3000.001 3000.001 0.901)
+              (3000.001 3000.001 2.401)
+              (3000.001 3000.001 4.001)
+              (3000.001 3000.001 10.101)
+              (3000.001 3000.001 16.801)
+              (3000.001 3000.001 47.301)
+              (3000.001 3000.001 74.701)
+              (3000.001 3000.001 116.501)
+              (3000.001 3000.001 158.201)
+              (3000.001 3000.001 200.001)
+          );
+    }
