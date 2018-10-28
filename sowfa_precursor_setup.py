@@ -1190,6 +1190,11 @@ sourceTableTemperature
         if not (self.dx == self.dy == self.dz):
             self._alert('Did you mean to specify different spacings in each direction?')
 
+        # Check surface conditions
+        if (float(self.z0.get()) <= 0.0):
+            self._alert('Surface roughness z0 <= 0 is likely to cause problems'+
+                        ' for initialization, Rwall, and possibly qwall.')
+
         # Check IC/BCs
         if (self.velocityInitTypeVar.get() == 'table') \
                 and (not self.sourceTypeVar.get() == 'profile'):
